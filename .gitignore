@@ -6,4 +6,6 @@ main
 *.txt
 sources/
 build/
+server
+client
 

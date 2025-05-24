@@ -4,21 +4,13 @@ global _start
 
 section .text
 _start:
-  ; init socket
-  mov   rdi, qword [port] 
-  call  server_init
+  ; init client socket
+  mov   rdi, qword [port]
+  call  client_init
   cmp   rax, 0
   jl    .error
 
   mov   qword [fd], rax
-
-  mov   rdi, rax
-  call  accept_connection
-  cmp   rax, 0
-  jl    .error
-
-.loop:
-  jmp   .loop
 
   mov   rdi, SUCCESS_CODE
   call  exit
