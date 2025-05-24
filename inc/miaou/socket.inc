@@ -108,7 +108,6 @@ socket_init:
 .return:
   add   rsp, 0x10
   ret
-
   
 ; creates socket
 ; @param  rdi: family
@@ -276,5 +275,46 @@ inet_addr:
 
 .return:
   add   rsp, 0x28
+  ret
+
+; accepts a connection and returns the client fd
+; @param  rdi: server file descriptor
+; @return rax: client file descriptor
+accept_connection:
+  sub   rsp, 0x10
+  sub   rsp, SOCKADDR_STRUCT_LEN
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> server file descriptor
+  ; [rsp+0x8] -> sockaddr struct
+
+  mov   [rsp], rdi
+
+  lea   rax, [rsp+0x8]
+
+  mov   word [rax+SOCKADDR_OFF_SIN_FAMILY], AF_INET
+  mov   word [rax+SOCKADDR_OFF_SIN_PORT], 0
+  mov   dword [rax+SOCKADDR_OFF_SIN_ADDR], 0
+  mov   qword [rax+SOCKADDR_OFF_SA_ZERO], 0
+
+  mov   rbx, qword [addrlen]
+  mov   qword [rax+SOCKADDR_OFF_ADDRLEN], rbx
+
+  mov   rdi, [rsp]
+  mov   rax, SYS_ACCEPT
+  lea   rsi, [rsp+0x8]
+  lea   rdx, [addrlen]
+  syscall
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, SOCKADDR_STRUCT_LEN
+  add   rsp, 0x10
   ret
 
