@@ -1,0 +1,9 @@
+main
+*.o
+*.c
+*.py
+*.go
+*.txt
+sources/
+build/
+
