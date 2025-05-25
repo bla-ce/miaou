@@ -202,7 +202,7 @@ section .data
 msg       db "Hello, Client!", NULL_CHAR
 msg_len   equ $ - msg
 
-port      dq 6969
+port      dq 4747
 read_fds  dq 0
 main_fds  dq 0
 server_fd dq 0

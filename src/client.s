@@ -142,7 +142,7 @@ exit:
 section .data
 msg       db "Hello, World!", NULL_CHAR
 server_fd dq 0
-port      dq 6969
+port      dq 4747
 
 read_fds  dq 0
 
