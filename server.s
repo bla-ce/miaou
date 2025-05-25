@@ -4,6 +4,12 @@ global _start
 
 section .text
 _start:
+  sub   rsp, 0x10
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> length of message received
+  ; [rsp+0x8]   -> counter to iterate over active connections
+
   ; init socket
   mov   rdi, qword [port] 
   call  server_init
@@ -128,11 +134,46 @@ _start:
   cmp   rax, 1
   jl    .clear_fd
 
+  mov   qword [rsp], rax
+
   mov   rdi, buf
   mov   rsi, rax
   call  nprint
   cmp   rax, 0
   jl    .error
+
+  ; send message to each connection
+  mov   rax, qword [server_fd]
+  mov   qword [rsp+0x8], rax
+
+.send_loop:
+  inc   qword [rsp+0x8]
+  mov   rax, qword [max_connect]
+  cmp   qword [rsp+0x8], rax
+  jge   .send_loop_end
+
+  mov   rax, qword [curr_fd]
+  cmp   rax, qword [rsp+0x8]
+  je    .send_loop
+
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, qword [main_fds]
+  call  FD_ISSET
+  cmp   rax, 0
+  jl    .error
+  je    .send_loop
+
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, buf
+  mov   rdx, qword [rsp]
+  syscall
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .send_loop
+
+.send_loop_end:
 
   jmp   .inner_loop
   

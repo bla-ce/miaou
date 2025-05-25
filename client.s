@@ -33,11 +33,77 @@ _start:
   cmp   rax, 0
   jl    .error
 
-.loop:
-  mov   rdi, send_message
-  call  print
+  ; malloc read set of file descriptors
+  mov   rdi, FD_SET_STRUCT_LEN
+  call  malloc
   cmp   rax, 0
   jl    .error
+
+  mov   qword [read_fds], rax
+
+.loop:
+  ; init fd set
+  mov   rdi, qword [read_fds]
+  call  FD_ZERO
+  cmp   rax, 0
+  jl    .error
+
+  ; set local input file descriptor
+  mov   rdi, STDIN_FILENO
+  mov   rsi, qword [read_fds]
+  call  FD_SET
+  cmp   rax, 0
+  jl    .error
+
+  ; set server file descriptor
+  mov   rdi, qword [server_fd]
+  mov   rsi, qword [read_fds]
+  call  FD_SET
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SYS_SELECT 
+  mov   rdi, qword [server_fd]
+  inc   rdi
+  mov   rsi, qword [read_fds]
+  xor   rdx, rdx
+  xor   r10, r10
+  xor   r8, r8
+  syscall
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [server_fd]
+  mov   rsi, qword [read_fds]
+  call  FD_ISSET
+  cmp   rax, 0
+  jl    .error
+  je    .check_input
+
+  mov   rax, SYS_RECVFROM
+  mov   rdi, qword [server_fd]
+  mov   rsi, buf
+  mov   rdx, BUFSIZ
+  xor   r10, r10
+  xor   r8, r8
+  xor   r9, r9
+  syscall
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, buf
+  mov   rsi, rax
+  call  nprint
+  cmp   rax, 0
+  jl    .error
+
+.check_input:
+  mov   rdi, STDIN_FILENO
+  mov   rsi, qword [read_fds]
+  call  FD_ISSET
+  cmp   rax, 0
+  jl    .error
+  je    .loop
 
   mov   rax, SYS_READ
   mov   rdi, STDIN_FILENO
@@ -46,6 +112,9 @@ _start:
   syscall
   cmp   rax, 0
   jl    .error
+
+  cmp   byte [buf], LINE_FEED
+  je    .loop
 
   mov   rdx, rax
   mov   rax, SYS_WRITE
@@ -75,7 +144,11 @@ msg       db "Hello, World!", NULL_CHAR
 server_fd dq 0
 port      dq 6969
 
+read_fds  dq 0
+
 BUFSIZ equ 1024
 buf times BUFSIZ db 0
+
+max_connect dq 2
 
 send_message db "new message: ", NULL_CHAR
