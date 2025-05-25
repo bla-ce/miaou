@@ -34,6 +34,11 @@ _start:
   jl    .error
 
 .loop:
+  mov   rdi, send_message
+  call  print
+  cmp   rax, 0
+  jl    .error
+
   mov   rax, SYS_READ
   mov   rdi, STDIN_FILENO
   mov   rsi, buf
@@ -72,3 +77,5 @@ port      dq 6969
 
 BUFSIZ equ 1024
 buf times BUFSIZ db 0
+
+send_message db "new message: ", NULL_CHAR

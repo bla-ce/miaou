@@ -44,7 +44,7 @@ FD_SET:
   jl    .error
 
   cmp   rsi, 0
-  jl    .error
+  jle   .error
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> file descriptor to add
@@ -87,7 +87,7 @@ FD_SET:
 
   ; get prev index value
   xor   rdx, rdx
-  mov   rax, [rsp+0x10]
+  mov   rax, [rsp+0x18]
   mov   rbx, LONG_SIZE
   mul   rbx
 
@@ -98,10 +98,6 @@ FD_SET:
   mov   rsi, [rdi]
   or    rsi, [rsp+0x20]
   mov   [rdi], rsi
-
-  mov   rax, [rsp+0x20]
-
-.b1:
 
   mov   rax, SUCCESS_CODE
   jmp   .return
@@ -125,5 +121,75 @@ FD_CLR:
 ; @param  rsi: pointer to file descriptors set
 ; @param  rax: return code
 FD_ISSET:
+  sub   rsp, 0x28
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jle   .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> file descriptor to add
+  ; [rsp+0x8]   -> pointer to file descriptors set
+  ; [rsp+0x10]  -> 8 * sizeof(long)
+  ; [rsp+0x18]  -> index that needs to be updated
+  ; [rsp+0x20]  -> shifted value
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+
+  ; get index
+  xor   rdx, rdx
+  mov   rax, 8
+  mov   rbx, LONG_SIZE
+  mul   rbx
+
+  mov   [rsp+0x10], rax
+
+  xor   rdx, rdx
+  mov   rax, [rsp]
+  div   rbx
+
+  mov   [rsp+0x18], rax
+
+  ; get unshifted value
+  xor   rdx, rdx
+  mov   rax, [rsp]
+  mov   rbx, [rsp+0x10]
+  div   rbx
+
+  ; remainder in rdx
+  mov   rcx, rdx
+  mov   rax, 1
+
+  ; shift value
+  shl   rax, cl
+
+  mov   [rsp+0x20], rax
+
+  ; get prev index value
+  xor   rdx, rdx
+  mov   rax, [rsp+0x18]
+  mov   rbx, LONG_SIZE
+  mul   rbx
+
+  mov   rdi, [rsp+0x8]
+  add   rdi, rax
+
+  ; or value with prev
+  mov   rax, [rdi]
+  and   rax, [rsp+0x20]
+
+  not   rax
+  not   rax
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x28
   ret
 

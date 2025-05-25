@@ -10,44 +10,139 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [fd], rax
+  mov   qword [server_fd], rax
 
   mov   rdi, log_starting_server
   call  println
   cmp   rax, 0
   jl    .error
 
-  ; malloc set of file descriptors
+  ; malloc main set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
   call  malloc
   cmp   rax, 0
   jl    .error
 
-  mov   qword [main_fd], rax
+  mov   qword [main_fds], rax
+
+  ; malloc read set of file descriptors
+  mov   rdi, FD_SET_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [read_fds], rax
 
   ; init fd set
-  mov   rdi, qword [main_fd]
+  mov   rdi, qword [main_fds]
   call  FD_ZERO
   cmp   rax, 0
   jl    .error
 
-  xor   r9, r9
-
-.loop:
   ; set server file descriptor
-  mov   rdi, r9
-  mov   rsi, qword [main_fd]
+  mov   rdi, qword [server_fd]
+  mov   rsi, qword [main_fds]
   call  FD_SET
   cmp   rax, 0
   jl    .error
 
-  inc   r9
+.loop:
+  ; back up main fd set
+  mov   rdi, qword [read_fds]
+  mov   rsi, qword [main_fds]
+  mov   rcx, FD_SET_STRUCT_LEN
+  rep   movsb
 
-  cmp   r9, 10
-  jg    .loop_end
+  mov   rax, SYS_SELECT 
+  mov   rdi, qword [max_connect]
+  inc   rdi
+  mov   rsi, qword [read_fds]
+  xor   rdx, rdx
+  xor   r10, r10
+  xor   r8, r8
+  syscall
+  cmp   rax, 0
+  jl    .error
 
+  mov   qword [curr_fd], 0
+
+.inner_loop:
+  inc   qword [curr_fd]
+
+  mov   rax, qword [max_connect]
+  cmp   qword [curr_fd], rax
+  jg    .inner_loop_end
+
+  ; filter only active or new clients
+  mov   rdi, qword [curr_fd]
+  mov   rsi, qword [read_fds]
+  call  FD_ISSET
+  cmp   rax, 0
+  jl    .error
+  je   .inner_loop
+
+  ; filter out the server which indicates a new connection
+  mov   rax, qword [server_fd] 
+  cmp   qword [curr_fd], rax
+  jne   .read_msg
+
+  ; add new client 
+  mov   rdi, qword [server_fd]
+  call  accept_connection
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [client_fd], rax
+
+  ; log new connection
+  mov   rdi, log_new_connection
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, qword [client_fd]
+  mov   rsi, qword [main_fds]
+  call  FD_SET
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [client_fd]
+  mov   rsi, msg
+  mov   rdx, msg_len
+  syscall
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .inner_loop
+
+.read_msg:
+  mov   rax, SYS_RECVFROM
+  mov   rdi, qword [curr_fd]
+  mov   rsi, buf
+  mov   rdx, BUFSIZ
+  xor   r10, r10
+  xor   r8, r8
+  xor   r9, r9
+  syscall
+  cmp   rax, 1
+  jl    .clear_fd
+
+  mov   rdi, buf
+  mov   rsi, rax
+  call  nprint
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .inner_loop
+  
+.clear_fd:
+  jmp   .inner_loop
+
+.inner_loop_end:
   jmp   .loop
-.loop_end:
+
+.end_loop:
 
   mov   rdi, SUCCESS_CODE
   call  exit
@@ -66,11 +161,14 @@ section .data
 msg       db "Hello, Client!", NULL_CHAR
 msg_len   equ $ - msg
 
-fd        dq 0
 port      dq 6969
-main_fd   dq 0
+read_fds  dq 0
+main_fds  dq 0
+server_fd dq 0
+client_fd dq 0
 
-backlog equ 10
+curr_fd     dq 0
+max_connect dq 10
 
 BUFSIZ equ 1024
 buf times BUFSIZ db 0
