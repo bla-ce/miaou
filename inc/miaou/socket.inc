@@ -48,16 +48,10 @@ htons:
 ; @param  rdi: port the socket will be listening to
 ; @return rax: file descriptor of the socket
 client_init:
-  sub   rsp, 0x10
-
-  cmp   rdi, 0
-  jl    .error
+  sub   rsp, 0x8
 
   ; *** STACK USAGE *** ;
-  ; [rsp]     -> port the socket will be listening to
-  ; [rsp+0x8] -> file descriptor of the client
-
-  mov   [rsp], rdi
+  ; [rsp] -> file descriptor of the client
 
   ; create the socket
   mov   rdi, AF_INET
@@ -67,30 +61,24 @@ client_init:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [rsp+0x8], rax
+  mov   qword [rsp], rax
 
   ; set socket options
-  mov   rdi, qword [rsp+0x8]
+  mov   rdi, qword [rsp]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
   call  set_socket_option
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [rsp+0x8]
+  mov   rdi, qword [rsp]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   call  set_socket_option
   cmp   rax, 0
   jl    .error
 
-  ; connect to the server
-  mov   rdi, qword [rsp+0x8]
-  mov   rsi, qword [rsp]
-  mov   rdx, AF_INET
-  call  connect_to_socket
-  cmp   rax, 0
-  jl    .error
+  mov   rax, qword [rsp]
 
   jmp   .return
 
@@ -98,7 +86,7 @@ client_init:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x10
+  add   rsp, 0x8
   ret
 
 ; initialise the server socket (create, bind and listen)
@@ -425,4 +413,5 @@ accept_connection:
   add   rsp, SOCKADDR_STRUCT_LEN
   add   rsp, 0x10
   ret
+
 

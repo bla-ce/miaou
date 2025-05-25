@@ -8,6 +8,7 @@
 %include "memset.inc"
 %include "mmap.inc"
 %include "realloc.inc"
+%include "select.inc"
 %include "socket.inc"
 %include "string.inc"
 %include "syscall.inc"

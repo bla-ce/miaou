@@ -129,10 +129,3 @@ section .text
   ASCII_DELETE              equ 0x7F
   LOWER_TO_UPPER            equ 0x20
 
-HERVE_LOGO db  " _____________________________________________ ",LINE_FEED
-           db  "|    _____   _____   _____   _____   _____    |",LINE_FEED
-           db  "|   |  |  | |   __| | __  | |  |  | |   __|   |",LINE_FEED
-           db  "|   |     | |   __| |    -| |  |  | |   __|   |",LINE_FEED
-           db  "|   |__|__| |_____| |__|__|  \___/  |_____|   |",LINE_FEED
-           db  "|_____________________________________________|",LINE_FEED, NULL_CHAR
-

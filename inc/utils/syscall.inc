@@ -6,6 +6,7 @@ SYS_OPEN          equ 2
 SYS_CLOSE         equ 3
 SYS_FSTAT         equ 5
 SYS_LSEEK         equ 8
+SYS_SELECT        equ 23
 SYS_SOCKET        equ 41
 SYS_CONNECT       equ 42
 SYS_ACCEPT        equ 43
