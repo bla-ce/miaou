@@ -4,11 +4,12 @@ global _start
 
 section .text
 _start:
-  sub   rsp, 0x10
+  sub   rsp, 0x18
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> length of message received
   ; [rsp+0x8]   -> counter to iterate over active connections
+  ; [rsp+0x10]  -> pointer to the client struct sending the message
 
   ; init socket
   mov   rdi, qword [port] 
@@ -60,7 +61,7 @@ _start:
   rep   movsb
 
   mov   rax, SYS_SELECT 
-  mov   rdi, qword [max_connect]
+  mov   rdi, MAX_CONNECT
   inc   rdi
   mov   rsi, qword [read_fds]
   xor   rdx, rdx
@@ -75,7 +76,7 @@ _start:
 .inner_loop:
   inc   qword [curr_fd]
 
-  mov   rax, qword [max_connect]
+  mov   rax, MAX_CONNECT
   cmp   qword [curr_fd], rax
   jg    .inner_loop_end
 
@@ -92,6 +93,13 @@ _start:
   cmp   qword [curr_fd], rax
   jne   .read_msg
 
+  mov   rbx, qword [active_connections]
+  inc   rbx
+  cmp   rbx, MAX_CONNECT
+  jg    .inner_loop
+
+  inc   qword [active_connections]
+
   ; add new client 
   mov   rdi, qword [server_fd]
   call  accept_connection
@@ -106,12 +114,41 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; set the file descriptor
   mov   rdi, qword [client_fd]
   mov   rsi, qword [main_fds]
   call  FD_SET
   cmp   rax, 0
   jl    .error
 
+  ; malloc new client
+  mov   rdi, CLIENT_STRUCT_LEN
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  mov   [client_struct], rax
+
+  mov   rdi, qword [client_fd]
+  mov   qword [rax+CLIENT_STRUCT_OFFSET_FD], rdi
+  mov   qword [rax+CLIENT_STRUCT_OFFSET_ACTIVE], 1
+
+  ; username will be assigned later
+  mov   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
+
+  ; add client to the array
+  mov   rdi, clients
+  xor   rdx, rdx
+  mov   rax, qword [active_connections]
+  dec   rax
+  mov   rbx, 8
+  mul   rbx
+
+  add   rdi, rax
+  mov   rsi, [client_struct]
+  mov   [rdi], rsi
+  
+  ; send the welcome message
   mov   rax, SYS_WRITE
   mov   rdi, qword [client_fd]
   mov   rsi, msg
@@ -123,6 +160,7 @@ _start:
   jmp   .inner_loop
 
 .read_msg:
+  ; get message from the client
   mov   rax, SYS_RECVFROM
   mov   rdi, qword [curr_fd]
   mov   rsi, buf
@@ -136,8 +174,38 @@ _start:
 
   mov   qword [rsp], rax
 
+  ; check if client's username has been set
+  mov   rdi, qword [curr_fd]
+  call  get_client_by_fd
+  cmp   rax, 0
+  jle   .error  ; TODO: probably doing something different if 0
+
+  mov   [rsp+0x10], rax
+
+  cmp   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
+  jg    .read_and_send_message
+
+  ; malloc string for username
+  mov   rdi, qword [rsp]
+  call  malloc
+  cmp   rax, 0
+  jl    .error
+
+  ; set username
+  mov   rdi, [rsp+0x10]
+  mov   [rdi+CLIENT_STRUCT_OFFSET_USERNAME], rax
+
+  ; copy username
+  mov   rdi, rax
+  mov   rsi, buf
+  mov   rcx, qword [rsp]
+  rep   movsb
+
+  jmp   .inner_loop
+
+.read_and_send_message:
   mov   rdi, buf
-  mov   rsi, rax
+  mov   rsi, qword [rsp]
   call  nprint
   cmp   rax, 0
   jl    .error
@@ -148,7 +216,7 @@ _start:
 
 .send_loop:
   inc   qword [rsp+0x8]
-  mov   rax, qword [max_connect]
+  mov   rax, MAX_CONNECT
   cmp   qword [rsp+0x8], rax
   jge   .send_loop_end
 
@@ -197,25 +265,4 @@ _start:
 exit:
   mov   rax, SYS_EXIT
   syscall
-
-section .data
-msg       db "Hello, Client!", NULL_CHAR
-msg_len   equ $ - msg
-
-port      dq 4747
-read_fds  dq 0
-main_fds  dq 0
-server_fd dq 0
-client_fd dq 0
-
-curr_fd     dq 0
-max_connect dq 10
-
-BUFSIZ equ 1024
-buf times BUFSIZ db 0
-
-log_starting_server   db "[INFO] starting server...", NULL_CHAR
-log_waiting           db "[INFO] waiting for connection...", NULL_CHAR
-log_new_connection    db "[INFO] new connnection", NULL_CHAR
-log_received_message  db "from client:", NULL_CHAR
 

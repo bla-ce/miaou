@@ -19,7 +19,7 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; receive hello message from the server
+  ; receive connect message from the server to connect
   mov   rax, SYS_READ
   mov   rdi, qword [server_fd]
   mov   rsi, buf
@@ -29,7 +29,7 @@ _start:
   jl    .error
 
   mov   rdi, buf
-  call  println
+  call  print
   cmp   rax, 0
   jl    .error
 
@@ -140,15 +140,6 @@ exit:
   syscall
 
 section .data
-msg       db "Hello, World!", NULL_CHAR
-server_fd dq 0
-port      dq 4747
-
-read_fds  dq 0
-
-BUFSIZ equ 1024
-buf times BUFSIZ db 0
-
 max_connect dq 2
 
-send_message db "new message: ", NULL_CHAR
+send_message db "message: ", NULL_CHAR
