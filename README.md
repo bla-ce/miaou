@@ -13,6 +13,7 @@ A simple chat server and client implemented entirely in Assembly for x86-64 Linu
 ```
 inc/malloc/     Custom malloc implementation
 inc/utils/      Utility routines
+inc/boeuf/      Dynamic buffers library
 inc/miaou/      Chat protocol definitions
 src/        Assembly sources (.s)
 build/      Output directory for executables

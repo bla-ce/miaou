@@ -204,9 +204,39 @@ _start:
   jmp   .inner_loop
 
 .read_and_send_message:
-  mov   rdi, buf
-  mov   rsi, qword [rsp]
-  call  nprint
+  ; create boeuf buffer to display message
+  mov   rdi, CYAN_FG
+  call  boeuf_create
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get username
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_USERNAME]
+  mov   rdi, [rsp+0x18]
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, DEFAULT_FG
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, buf
+  mov   rdx, qword [rsp]
+  call  boeuf_nappend
+  cmp   rax, 0
+  jl    .error
+  
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  call  println
   cmp   rax, 0
   jl    .error
 
@@ -233,8 +263,8 @@ _start:
 
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+0x8]
-  mov   rsi, buf
-  mov   rdx, qword [rsp]
+  mov   rsi, [rsp+0x18]
+  mov   rdx, BUFSIZ
   syscall
   cmp   rax, 0
   jl    .error
@@ -242,6 +272,11 @@ _start:
   jmp   .send_loop
 
 .send_loop_end:
+  ; free boeuf buffer
+  mov   rdi, [rsp+0x18]
+  call  boeuf_free
+  cmp   rax, 0
+  jl    .error
 
   jmp   .inner_loop
   

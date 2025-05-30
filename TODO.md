@@ -3,8 +3,11 @@
 - [x] Server prints message from client
 - [x] Accept multiple connections
 - [x] Send message to all fd
-- [ ] Setup username before connection
-- [ ] New message log format: 
-        from username - hh:mm: 
+- [x] Setup username before connection
+- [x] New message log format with color:
+        username: 
         msg
+- [ ] Use different colors for each user
 - [ ] Close connection on error or if 'close' is sent
+- [ ] UI
+- [ ] Create groups

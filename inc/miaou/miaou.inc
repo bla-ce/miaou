@@ -1,4 +1,5 @@
 %include "ascii.inc"
+%include "boeuf.inc"
 %include "calloc.inc"
 %include "constants.inc"
 %include "file.inc"
@@ -32,6 +33,9 @@ section .data
   msg       db "Hello, Client!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
   msg_len   equ $ - msg
+
+  CYAN_FG     db 0x1b, "[36m", NULL_CHAR
+  DEFAULT_FG  db 0x1b, "[39m", NULL_CHAR
   
   port      dq 4747
   read_fds  dq 0
@@ -85,7 +89,7 @@ get_client_by_fd:
 
 .loop_end:
 
-  mov   rax, rsi
+  mov   rax, rdi
   jmp   .return
 
 .does_not_exist:

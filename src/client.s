@@ -92,8 +92,7 @@ _start:
   jl    .error
 
   mov   rdi, buf
-  mov   rsi, rax
-  call  nprint
+  call  println
   cmp   rax, 0
   jl    .error
 
@@ -143,3 +142,4 @@ section .data
 max_connect dq 2
 
 send_message db "message: ", NULL_CHAR
+
