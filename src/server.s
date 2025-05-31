@@ -136,14 +136,22 @@ _start:
   ; username will be assigned later
   mov   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
 
-  ; add client to the array
-  mov   rdi, clients
+  ; get color
   xor   rdx, rdx
   mov   rax, qword [active_connections]
   dec   rax
   mov   rbx, 8
   mul   rbx
 
+  mov   rdi, colors
+  add   rdi, rax
+
+  mov   rsi, [rdi]
+  mov   rdi, [client_struct]
+  mov   qword [rdi+CLIENT_STRUCT_OFFSET_COLOR], rsi
+
+  ; add client to the array
+  mov   rdi, clients
   add   rdi, rax
   mov   rsi, [client_struct]
   mov   [rdi], rsi
@@ -205,7 +213,9 @@ _start:
 
 .read_and_send_message:
   ; create boeuf buffer to display message
-  mov   rdi, CYAN_FG
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]
+  mov   rdi, rsi
   call  boeuf_create
   cmp   rax, 0
   jl    .error

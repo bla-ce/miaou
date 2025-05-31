@@ -19,6 +19,7 @@ section .bss
 _client_struct:
   _client_fd        resq 1
   _client_username  resq 1
+  _client_color     resq 1
   _client_active    resq 1
 _client_struct_end:
 
@@ -28,14 +29,25 @@ section .data
   ; client offsets
   CLIENT_STRUCT_OFFSET_FD       equ 0
   CLIENT_STRUCT_OFFSET_USERNAME equ CLIENT_STRUCT_OFFSET_FD + 0x8
-  CLIENT_STRUCT_OFFSET_ACTIVE   equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
+  CLIENT_STRUCT_OFFSET_COLOR    equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
+  CLIENT_STRUCT_OFFSET_ACTIVE   equ CLIENT_STRUCT_OFFSET_COLOR + 0x8
 
   msg       db "Hello, Client!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
   msg_len   equ $ - msg
 
-  CYAN_FG     db 0x1b, "[36m", NULL_CHAR
-  DEFAULT_FG  db 0x1b, "[39m", NULL_CHAR
+  RED_FG          db 0x1b, "[31m", NULL_CHAR
+  GREEN_FG        db 0x1b, "[32m", NULL_CHAR
+  YELLOW_FG       db 0x1b, "[33m", NULL_CHAR
+  BLUE_FG         db 0x1b, "[34m", NULL_CHAR
+  MAGENTA_FG      db 0x1b, "[35m", NULL_CHAR
+  CYAN_FG         db 0x1b, "[36m", NULL_CHAR
+  GRAY_FG         db 0x1b, "[90m", NULL_CHAR
+  BRIGHT_RED_FG   db 0x1b, "[91m", NULL_CHAR
+  BRIGHT_GREEN_FG db 0x1b, "[92m", NULL_CHAR
+  DEFAULT_FG      db 0x1b, "[39m", NULL_CHAR
+
+  colors dq RED_FG, GREEN_FG, YELLOW_FG, BLUE_FG, MAGENTA_FG, CYAN_FG, 0
   
   port      dq 4747
   read_fds  dq 0
