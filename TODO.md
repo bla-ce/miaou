@@ -7,7 +7,8 @@
 - [x] New message log format with color:
         username: 
         msg
-- [ ] Use different colors for each user
+- [x] Use different colors for each user
+- [ ] Check for buffer overflows, too many clients and potential errors
 - [ ] Close connection on error or if 'close' is sent
 - [ ] UI
 - [ ] Create groups

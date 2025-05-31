@@ -47,7 +47,8 @@ section .data
   BRIGHT_GREEN_FG db 0x1b, "[92m", NULL_CHAR
   DEFAULT_FG      db 0x1b, "[39m", NULL_CHAR
 
-  colors dq RED_FG, GREEN_FG, YELLOW_FG, BLUE_FG, MAGENTA_FG, CYAN_FG, 0
+  colors  dq RED_FG, GREEN_FG, YELLOW_FG, BLUE_FG, MAGENTA_FG, CYAN_FG
+          dq GRAY_FG, BRIGHT_RED_FG, BRIGHT_GREEN_FG
   
   port      dq 4747
   read_fds  dq 0
