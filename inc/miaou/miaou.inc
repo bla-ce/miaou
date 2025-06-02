@@ -90,9 +90,13 @@ remove_client_from_array:
 
 .loop:
   mov   rdi, [rsi] 
+  cmp   rdi, 0
+  je    .null_struct
+
   cmp   qword [rdi+CLIENT_STRUCT_OFFSET_FD], rbx
   je    .loop_end
 
+.null_struct:
   ; move to next struct
   add   rsi, 8
 
@@ -131,9 +135,13 @@ get_client_by_fd:
 
 .loop:
   mov   rdi, [rsi] 
+  cmp   rdi, 0
+  je    .null_struct
+
   cmp   qword [rdi+CLIENT_STRUCT_OFFSET_FD], rbx
   je    .loop_end
 
+.null_struct:
   ; move to next struct
   add   rsi, 8
 

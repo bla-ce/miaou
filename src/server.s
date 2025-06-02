@@ -311,8 +311,8 @@ _start:
 
   mov   rsi, [rsp+0x10]
   mov   rdi, qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
-  mov   rdx, rax
-  dec   rdx
+  mov   rsi, rax
+  dec   rsi
   call  boeuf_ncreate
   cmp   rax, 0
   jl    .error
@@ -351,13 +351,13 @@ _start:
   jl    .error
 
   ; remove client from array
-  mov   rdi, [rsp+0x10]
+  mov   rdi, qword [curr_fd]
   call  remove_client_from_array
   cmp   rax, 0
   jl    .error
 
   ; free client struct
-  mov   rdi, qword [curr_fd]
+  mov   rdi, qword [rsp+0x10]
   call  free
   cmp   rax, 0
   jl    .error

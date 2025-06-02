@@ -10,17 +10,17 @@
 - [x] Use different colors for each user
 - [x] Close connection on error or if '!close' is sent
 - [x] Handle server shutting down
+- [x] handle client quitting the server
 - [ ] connect and disconnect log with username
 - [ ] Send message function to all fds
 - [ ] Create some functions
 - [ ] Store username without new line, update message log
-- [ ] New connection message with username
 - [ ] Add message time
 - [ ] Return server unavailable if can't connect
 - [ ] Better error handling to hope for crash free
 - [ ] Rate limiting
 - [ ] Ban users
-- [ ] UI
 - [ ] Create groups
 - [ ] Add password and accounts
 - [ ] Give different role to the chat
+- [ ] UI
