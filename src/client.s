@@ -19,20 +19,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; receive connect message from the server to connect
-  mov   rax, SYS_READ
-  mov   rdi, qword [server_fd]
-  mov   rsi, buf
-  mov   rdx, BUFSIZ
-  syscall
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, buf
-  call  print
-  cmp   rax, 0
-  jl    .error
-
   ; malloc read set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
   call  malloc
@@ -90,6 +76,7 @@ _start:
   syscall
   cmp   rax, 0
   jl    .error
+  je    .exit
 
   mov   rdi, buf
   call  println
@@ -125,6 +112,7 @@ _start:
   
   jmp   .loop 
 
+.exit:
   mov   rdi, SUCCESS_CODE
   call  exit
 

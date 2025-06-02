@@ -212,6 +212,13 @@ _start:
   jmp   .inner_loop
 
 .read_and_send_message:
+  ; check if client is closing the connection
+  mov   rdi, buf
+  mov   rsi, close_msg
+  mov   rdx, close_msg_len
+  call  strncmp
+  je    .clear_fd
+
   ; create boeuf buffer to display message
   mov   rdi, [rsp+0x10]
   mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]
@@ -291,6 +298,70 @@ _start:
   jmp   .inner_loop
   
 .clear_fd:
+  ; close connection
+  mov   rax, SYS_CLOSE
+  mov   rdi, qword [curr_fd]
+  syscall
+
+  mov   rsi, [rsp+0x10]
+  mov   rdi, qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rsi, [rsp+0x10]
+  mov   rdi, qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
+  mov   rdx, rax
+  dec   rdx
+  call  boeuf_ncreate
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
+  mov   rsi, log_close
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  call  println
+  cmp   rax, 0
+  jl    .error
+
+  ; clear fd
+  mov   rdi, qword [curr_fd]
+  mov   rsi, qword [main_fds]
+  call  FD_CLR
+  cmp   rax, 0
+  jl    .error
+
+  ; free boeuf buffer
+  mov   rdi, [rsp+0x18]
+  call  boeuf_free
+  cmp   rax, 0
+  jl    .error
+
+  ; free username
+  mov   rsi, [rsp+0x10]
+  mov   rdi, [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
+  ; remove client from array
+  mov   rdi, [rsp+0x10]
+  call  remove_client_from_array
+  cmp   rax, 0
+  jl    .error
+
+  ; free client struct
+  mov   rdi, qword [curr_fd]
+  call  free
+  cmp   rax, 0
+  jl    .error
+
   jmp   .inner_loop
 
 .inner_loop_end:

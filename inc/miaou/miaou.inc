@@ -58,7 +58,7 @@ section .data
   
   curr_fd     dq 0
   MAX_CONNECT equ 10
-  
+   
   BUFSIZ equ 0x400
   buf times BUFSIZ db 0
 
@@ -68,11 +68,54 @@ section .data
   active_connections  dq 0
   
   log_starting_server   db "[INFO] starting server...", NULL_CHAR
-  log_waiting           db "[INFO] waiting for connection...", NULL_CHAR
+  log_waiting           db "[INFO] waiting for connections...", NULL_CHAR
   log_new_connection    db "[INFO] new connnection", NULL_CHAR
-  log_received_message  db "from client:", NULL_CHAR
+
+  log_close db " left the chat", NULL_CHAR
+
+  close_msg     db "!close", LINE_FEED, NULL_CHAR
+  close_msg_len equ $ - close_msg - 1
 
 section .text;
+
+; removes the client from the clients array
+; @param  rdi: file descriptor of the client
+remove_client_from_array:
+  cmp   rdi, 0
+  jl    .error
+
+  xor   rax, rax        ; index
+  mov   rbx, rdi        ; store fd in rbx
+  mov   rsi, clients
+
+.loop:
+  mov   rdi, [rsi] 
+  cmp   qword [rdi+CLIENT_STRUCT_OFFSET_FD], rbx
+  je    .loop_end
+
+  ; move to next struct
+  add   rsi, 8
+
+  inc   rax
+  cmp   rax, qword [active_connections]
+  jg    .does_not_exist
+
+  jmp   .loop
+
+.loop_end:
+  mov   qword [rsi], 0
+
+  jmp   .return
+
+.does_not_exist:
+  mov   rax, 0
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  ret
 
 ; returns the client struct with the file descriptor or return 0 if does not
 ; exist
