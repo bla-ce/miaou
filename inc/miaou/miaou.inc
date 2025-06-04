@@ -69,9 +69,9 @@ section .data
   
   log_starting_server   db "[INFO] starting server...", NULL_CHAR
   log_waiting           db "[INFO] waiting for connections...", NULL_CHAR
-  log_new_connection    db "[INFO] new connnection", NULL_CHAR
 
-  log_close db " left the chat", NULL_CHAR
+  log_new_connection  db " joined the chat", NULL_CHAR
+  log_close           db " left the chat", NULL_CHAR
 
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $ - close_msg - 1

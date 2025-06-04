@@ -11,7 +11,7 @@
 - [x] Close connection on error or if '!close' is sent
 - [x] Handle server shutting down
 - [x] handle client quitting the server
-- [ ] connect and disconnect log with username
+- [x] connect and disconnect log with username
 - [ ] Send message function to all fds
 - [ ] Create some functions
 - [ ] Store username without new line, update message log

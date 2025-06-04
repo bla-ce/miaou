@@ -10,6 +10,7 @@ _start:
   ; [rsp]       -> length of message received
   ; [rsp+0x8]   -> counter to iterate over active connections
   ; [rsp+0x10]  -> pointer to the client struct sending the message
+  ; [rsp+0x18]  -> pointer to the client username
 
   ; init socket
   mov   rdi, qword [port] 
@@ -108,12 +109,6 @@ _start:
 
   mov   qword [client_fd], rax
 
-  ; log new connection
-  mov   rdi, log_new_connection
-  call  println
-  cmp   rax, 0
-  jl    .error
-
   ; set the file descriptor
   mov   rdi, qword [client_fd]
   mov   rsi, qword [main_fds]
@@ -205,11 +200,30 @@ _start:
   mov   rdi, [rsp+0x10]
   mov   [rdi+CLIENT_STRUCT_OFFSET_USERNAME], rax
 
+  mov   [rsp+0x18], rax
+
   ; copy username
   mov   rdi, rax
   mov   rsi, buf
   mov   rcx, qword [rsp]
   rep   movsb
+
+  mov   rdi, [rsp+0x18]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  mov   rsi, rax
+  dec   rsi
+  call  nprint
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, log_new_connection
+  call  println
+  cmp   rax, 0
+  jl    .error
 
   jmp   .inner_loop
 
