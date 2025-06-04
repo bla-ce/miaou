@@ -168,6 +168,14 @@ _start:
   jmp   .inner_loop
 
 .read_msg:
+  ; check if client's username has been set
+  mov   rdi, qword [curr_fd]
+  call  get_client_by_fd
+  cmp   rax, 0
+  jle   .error  ; TODO: probably doing something different if 0
+  
+  mov   [rsp+0x10], rax
+
   ; get message from the client
   mov   rax, SYS_RECVFROM
   mov   rdi, qword [curr_fd]
@@ -182,13 +190,7 @@ _start:
 
   mov   qword [rsp], rax
 
-  ; check if client's username has been set
-  mov   rdi, qword [curr_fd]
-  call  get_client_by_fd
-  cmp   rax, 0
-  jle   .error  ; TODO: probably doing something different if 0
-
-  mov   [rsp+0x10], rax
+  mov   rax, [rsp+0x10]
 
   cmp   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
   jg    .read_and_send_message
