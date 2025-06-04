@@ -216,12 +216,36 @@ _start:
   mov   rdi, [rsp+0x18]
   mov   rsi, rax
   dec   rsi
-  call  nprint
+  call  boeuf_ncreate
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, log_new_connection
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
+  mov   rsi, log_new_connection
+  call  boeuf_append
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x18], rax
+
+  mov   rdi, rax
   call  println
+  cmp   rax, 0
+  jl    .error
+
+  ; send message to each connection
+  mov   rdi, [rsp+0x18]
+  mov   rsi, qword [server_fd]
+  mov   rdx, qword [curr_fd]
+  mov   rcx, [main_fds]
+  call  send_message_to_all_fds
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, [rsp+0x18]
+  call  boeuf_free
   cmp   rax, 0
   jl    .error
 
@@ -274,37 +298,14 @@ _start:
   jl    .error
 
   ; send message to each connection
-  mov   rax, qword [server_fd]
-  mov   qword [rsp+0x8], rax
-
-.send_loop:
-  inc   qword [rsp+0x8]
-  mov   rax, MAX_CONNECT
-  cmp   qword [rsp+0x8], rax
-  jge   .send_loop_end
-
-  mov   rax, qword [curr_fd]
-  cmp   rax, qword [rsp+0x8]
-  je    .send_loop
-
-  mov   rdi, qword [rsp+0x8]
-  mov   rsi, qword [main_fds]
-  call  FD_ISSET
-  cmp   rax, 0
-  jl    .error
-  je    .send_loop
-
-  mov   rax, SYS_WRITE
-  mov   rdi, qword [rsp+0x8]
-  mov   rsi, [rsp+0x18]
-  mov   rdx, BUFSIZ
-  syscall
+  mov   rdi, [rsp+0x18]
+  mov   rsi, qword [server_fd]
+  mov   rdx, qword [curr_fd]
+  mov   rcx, [main_fds]
+  call  send_message_to_all_fds
   cmp   rax, 0
   jl    .error
 
-  jmp   .send_loop
-
-.send_loop_end:
   ; free boeuf buffer
   mov   rdi, [rsp+0x18]
   call  boeuf_free
@@ -341,8 +342,17 @@ _start:
 
   mov   [rsp+0x18], rax
 
-  mov   rdi, rax
+  mov   rdi, [rsp+0x18]
   call  println
+  cmp   rax, 0
+  jl    .error
+
+  ; send message to each connection
+  mov   rdi, [rsp+0x18]
+  mov   rsi, qword [server_fd]
+  mov   rdx, qword [curr_fd]
+  mov   rcx, [main_fds]
+  call  send_message_to_all_fds
   cmp   rax, 0
   jl    .error
 

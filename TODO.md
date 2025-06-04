@@ -12,9 +12,9 @@
 - [x] Handle server shutting down
 - [x] handle client quitting the server
 - [x] connect and disconnect log with username
-- [ ] Send message function to all fds
+- [x] Send message function to all fds
+- [ ] Send connect and disconnect log to all fds
 - [ ] Create some functions
-- [ ] Store username without new line, update message log
 - [ ] Add message time
 - [ ] Return server unavailable if can't connect
 - [ ] Better error handling to hope for crash free

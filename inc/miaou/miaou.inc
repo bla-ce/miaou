@@ -77,6 +77,76 @@ section .data
   close_msg_len equ $ - close_msg - 1
 
 section .text;
+; sends the string in rdi to all file descriptors set
+; @param  rdi: pointer to the message
+; @param  rsi: server file descriptor
+; @param  rdx: current file descriptor
+; @param  rcx: pointer to the file descriptor set
+; @return rax: return code
+send_message_to_all_fds:
+  sub   rsp, 0x20
+
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+
+  cmp   rdx, 0
+  jl    .error
+
+  cmp   rcx, 0
+  jl    .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the message
+  ; [rsp+0x8]   -> server file descriptor
+  ; [rsp+0x10]  -> current file descriptor
+  ; [rsp+0x18]  -> pointer to the file descriptor set
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   [rsp+0x10], rdx
+  mov   [rsp+0x18], rcx
+
+.send_loop:
+  inc   qword [rsp+0x8]
+  mov   rax, MAX_CONNECT
+  cmp   qword [rsp+0x8], rax
+  jge   .send_loop_end
+
+  mov   rax, qword [rsp+0x10]
+  cmp   rax, qword [rsp+0x8]
+  je    .send_loop
+
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, [rsp+0x18]
+  call  FD_ISSET
+  cmp   rax, 0
+  jl    .error
+  je    .send_loop
+
+  mov   rax, SYS_WRITE
+  mov   rdi, qword [rsp+0x8]
+  mov   rsi, [rsp]
+  mov   rdx, BUFSIZ
+  syscall
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .send_loop
+
+.send_loop_end:
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
 
 ; removes the client from the clients array
 ; @param  rdi: file descriptor of the client
