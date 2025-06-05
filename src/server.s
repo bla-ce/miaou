@@ -290,8 +290,7 @@ _start:
   cmp   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
   jl    .no_ban   
 
-  mov   rdi, log_should_be_banned
-  call  println
+  jmp   .clear_fd
 
 .no_ban:
   jmp   .inner_loop

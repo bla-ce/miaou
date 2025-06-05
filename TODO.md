@@ -16,7 +16,7 @@
 - [x] Send connect and disconnect log to all fds
 - [x] Rate limiting
 - [x] Username with less than 3 char bug after being banned
-- [ ] Exclude users from chat after 10 strikes
+- [x] Exclude users from chat after 10 strikes
 - [ ] Ban users after 10 strikes
 - [ ] Add message time
 - [ ] Return server unavailable if can't connect
