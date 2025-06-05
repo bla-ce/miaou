@@ -13,13 +13,12 @@
 - [x] handle client quitting the server
 - [x] connect and disconnect log with username
 - [x] Send message function to all fds
-- [ ] Send connect and disconnect log to all fds
-- [ ] Create some functions
+- [x] Send connect and disconnect log to all fds
+- [ ] Rate limiting
+- [ ] Ban users
 - [ ] Add message time
 - [ ] Return server unavailable if can't connect
 - [ ] Better error handling to hope for crash free
-- [ ] Rate limiting
-- [ ] Ban users
 - [ ] Create groups
 - [ ] Add password and accounts
 - [ ] Give different role to the chat

@@ -4,13 +4,14 @@ global _start
 
 section .text
 _start:
-  sub   rsp, 0x18
+  sub   rsp, 0x28
 
   ; *** STACK USAGE *** ;
   ; [rsp]       -> length of message received
   ; [rsp+0x8]   -> counter to iterate over active connections
   ; [rsp+0x10]  -> pointer to the client struct sending the message
   ; [rsp+0x18]  -> pointer to the client username
+  ; [rsp+0x20]  -> now timestamp
 
   ; init socket
   mov   rdi, qword [port] 
@@ -124,12 +125,17 @@ _start:
 
   mov   [client_struct], rax
 
+  call  now
+
+  mov   rsi, [client_struct] 
+
   mov   rdi, qword [client_fd]
-  mov   qword [rax+CLIENT_STRUCT_OFFSET_FD], rdi
-  mov   qword [rax+CLIENT_STRUCT_OFFSET_ACTIVE], 1
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_FD], rdi
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], 1
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
 
   ; username will be assigned later
-  mov   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME], 0
 
   ; get color
   xor   rdx, rdx
@@ -163,7 +169,6 @@ _start:
   jmp   .inner_loop
 
 .read_msg:
-  ; check if client's username has been set
   mov   rdi, qword [curr_fd]
   call  get_client_by_fd
   cmp   rax, 0
@@ -185,6 +190,7 @@ _start:
 
   mov   qword [rsp], rax
 
+  ; check if client's username has been set
   mov   rax, [rsp+0x10]
 
   cmp   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
@@ -258,6 +264,19 @@ _start:
   mov   rdx, close_msg_len
   call  strncmp
   je    .clear_fd
+
+  ; check rate limiter
+  call  now 
+
+  mov   rdi, [rsp+0x10]
+  mov   rbx, qword [rdi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE]
+
+  mov   qword [rdi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
+
+  sub   rax, rbx
+  
+  cmp   rax, RATE_LIMIT
+  jl    .inner_loop
 
   ; create boeuf buffer to display message
   mov   rdi, [rsp+0x10]

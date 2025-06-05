@@ -17,20 +17,22 @@
 
 section .bss
 _client_struct:
-  _client_fd        resq 1
-  _client_username  resq 1
-  _client_color     resq 1
-  _client_active    resq 1
+  _client_fd            resq 1
+  _client_username      resq 1
+  _client_color         resq 1
+  _client_active        resq 1
+  _client_last_message  resq 1
 _client_struct_end:
 
 section .data
   CLIENT_STRUCT_LEN equ _client_struct_end - _client_struct
   
   ; client offsets
-  CLIENT_STRUCT_OFFSET_FD       equ 0
-  CLIENT_STRUCT_OFFSET_USERNAME equ CLIENT_STRUCT_OFFSET_FD + 0x8
-  CLIENT_STRUCT_OFFSET_COLOR    equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
-  CLIENT_STRUCT_OFFSET_ACTIVE   equ CLIENT_STRUCT_OFFSET_COLOR + 0x8
+  CLIENT_STRUCT_OFFSET_FD           equ 0
+  CLIENT_STRUCT_OFFSET_USERNAME     equ CLIENT_STRUCT_OFFSET_FD + 0x8
+  CLIENT_STRUCT_OFFSET_COLOR        equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
+  CLIENT_STRUCT_OFFSET_ACTIVE       equ CLIENT_STRUCT_OFFSET_COLOR + 0x8
+  CLIENT_STRUCT_OFFSET_LAST_MESSAGE equ CLIENT_STRUCT_OFFSET_ACTIVE + 0x8
 
   msg       db "Hello, Client!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
@@ -61,6 +63,8 @@ section .data
    
   BUFSIZ equ 0x400
   buf times BUFSIZ db 0
+
+  RATE_LIMIT equ 1
 
   ; array of clients
   clients             times MAX_CONNECT dq 0
