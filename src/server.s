@@ -133,6 +133,7 @@ _start:
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_FD], rdi
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], 1
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_STRIKES], 0
 
   ; username will be assigned later
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME], 0
@@ -214,6 +215,10 @@ _start:
   mov   rcx, qword [rsp]
   rep   movsb
 
+  ; add null char
+  mov   rax, NULL_CHAR
+  stosb
+
   mov   rdi, [rsp+0x18]
   call  strlen
   cmp   rax, 0
@@ -276,10 +281,27 @@ _start:
   sub   rax, rbx
   
   cmp   rax, RATE_LIMIT
-  jl    .inner_loop
+  jge   .message_allowed
+
+  ; add one strike
+  inc   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES]
+
+  ; TODO: if strike is greater than 10, exclude user from the chat
+  cmp   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
+  jl    .no_ban   
+
+  mov   rdi, log_should_be_banned
+  call  println
+
+.no_ban:
+  jmp   .inner_loop
+
+.message_allowed:
+  ; reset strikes count
+  mov   rdi, [rsp+0x10]
+  mov   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], 0 
 
   ; create boeuf buffer to display message
-  mov   rdi, [rsp+0x10]
   mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]
   mov   rdi, rsi
   call  boeuf_create

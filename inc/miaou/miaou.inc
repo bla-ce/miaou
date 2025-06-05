@@ -22,6 +22,7 @@ _client_struct:
   _client_color         resq 1
   _client_active        resq 1
   _client_last_message  resq 1
+  _client_strikes       resq 1
 _client_struct_end:
 
 section .data
@@ -33,6 +34,7 @@ section .data
   CLIENT_STRUCT_OFFSET_COLOR        equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
   CLIENT_STRUCT_OFFSET_ACTIVE       equ CLIENT_STRUCT_OFFSET_COLOR + 0x8
   CLIENT_STRUCT_OFFSET_LAST_MESSAGE equ CLIENT_STRUCT_OFFSET_ACTIVE + 0x8
+  CLIENT_STRUCT_OFFSET_STRIKES      equ CLIENT_STRUCT_OFFSET_LAST_MESSAGE + 0x8
 
   msg       db "Hello, Client!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
@@ -64,7 +66,8 @@ section .data
   BUFSIZ equ 0x400
   buf times BUFSIZ db 0
 
-  RATE_LIMIT equ 1
+  RATE_LIMIT equ 2      ; rate limiter in second
+  STRIKES_LIMIT equ 10  ; after 10 strikes, user is banned
 
   ; array of clients
   clients             times MAX_CONNECT dq 0
@@ -73,6 +76,8 @@ section .data
   
   log_starting_server   db "[INFO] starting server...", NULL_CHAR
   log_waiting           db "[INFO] waiting for connections...", NULL_CHAR
+
+  log_should_be_banned db "[WARN] user should be banned", NULL_CHAR
 
   log_new_connection  db " joined the chat", NULL_CHAR
   log_close           db " left the chat", NULL_CHAR
@@ -88,7 +93,7 @@ section .text;
 ; @param  rcx: pointer to the file descriptor set
 ; @return rax: return code
 send_message_to_all_fds:
-  sub   rsp, 0x20
+  sub   rsp, 0x28
 
   cmp   rdi, 0
   jl    .error
@@ -107,11 +112,19 @@ send_message_to_all_fds:
   ; [rsp+0x8]   -> server file descriptor
   ; [rsp+0x10]  -> current file descriptor
   ; [rsp+0x18]  -> pointer to the file descriptor set
+  ; [rsp+0x20]  -> length of the message
 
   mov   [rsp], rdi
   mov   [rsp+0x8], rsi
   mov   [rsp+0x10], rdx
   mov   [rsp+0x18], rcx
+
+  mov   rdi, [rsp]
+  call  strlen
+  cmp   rax, 0
+  jl    .error
+
+  mov   qword [rsp+0x20], rax
 
 .send_loop:
   inc   qword [rsp+0x8]
@@ -133,7 +146,8 @@ send_message_to_all_fds:
   mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+0x8]
   mov   rsi, [rsp]
-  mov   rdx, BUFSIZ
+  mov   rdx, qword [rsp+0x20]
+  inc   rdx                     ; include null char
   syscall
   cmp   rax, 0
   jl    .error
@@ -149,7 +163,7 @@ send_message_to_all_fds:
   mov   rax, FAILURE_CODE
 
 .return:
-  add   rsp, 0x20
+  add   rsp, 0x28
   ret
 
 ; removes the client from the clients array
@@ -182,6 +196,8 @@ remove_client_from_array:
 
 .loop_end:
   mov   qword [rsi], 0
+
+  dec   qword [active_connections]
 
   jmp   .return
 

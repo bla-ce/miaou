@@ -14,8 +14,10 @@
 - [x] connect and disconnect log with username
 - [x] Send message function to all fds
 - [x] Send connect and disconnect log to all fds
-- [ ] Rate limiting
-- [ ] Ban users
+- [x] Rate limiting
+- [x] Username with less than 3 char bug after being banned
+- [ ] Exclude users from chat after 10 strikes
+- [ ] Ban users after 10 strikes
 - [ ] Add message time
 - [ ] Return server unavailable if can't connect
 - [ ] Better error handling to hope for crash free
