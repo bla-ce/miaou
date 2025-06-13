@@ -351,6 +351,10 @@ _start:
   jmp   .inner_loop
   
 .clear_fd:
+  ; shutdown the server if admin leaves
+  cmp   qword [curr_fd], 0
+  je    .end_loop
+
   ; close connection
   mov   rdi, qword [curr_fd]
   call  close_socket

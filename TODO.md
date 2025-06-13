@@ -6,7 +6,9 @@
 - [x] Set server as admin user
 - [x] FIX admin username
 - [x] rename clients to users
+- [x] if admin send '!close', shut down the server
 - [ ] Add admin command
+- [ ] Remove restrictions for admin
 - [ ] Store message length
 - [ ] store username without \n
 - [ ] username validation
