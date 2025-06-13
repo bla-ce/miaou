@@ -249,6 +249,10 @@ _start:
   call  strncmp
   je    .clear_fd
 
+  ; server does not have restrictions
+  cmp   qword [curr_fd], 0
+  je    .message_allowed
+
   ; check rate limiter
   call  now 
 
@@ -265,7 +269,6 @@ _start:
   ; add one strike
   inc   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES]
 
-  ; TODO: if strike is greater than 10, exclude user from the chat
   cmp   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
   jl    .no_ban   
 
@@ -277,7 +280,6 @@ _start:
 .message_allowed:
   ; reset strikes count
   mov   rdi, [rsp+0x10]
-  mov   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], 0 
 
   ; create boeuf buffer to display message
   mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]

@@ -7,8 +7,8 @@
 - [x] FIX admin username
 - [x] rename clients to users
 - [x] if admin send '!close', shut down the server
+- [x] Remove restrictions for admin
 - [ ] Add admin command
-- [ ] Remove restrictions for admin
 - [ ] Store message length
 - [ ] store username without \n
 - [ ] username validation
