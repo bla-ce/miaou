@@ -4,8 +4,10 @@
 - [x] Fix username bug
 - [x] Add a minimum limit for username
 - [x] Set server as admin user
-- [ ] rename clients to users
+- [x] FIX admin username
+- [x] rename clients to users
 - [ ] Add admin command
+- [ ] Store message length
 - [ ] store username without \n
 - [ ] username validation
 - [ ] Reduce scope of globals

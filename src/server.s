@@ -9,8 +9,8 @@ _start:
   ; *** STACK USAGE *** ;
   ; [rsp]       -> length of message received
   ; [rsp+0x8]   -> counter to iterate over active connections
-  ; [rsp+0x10]  -> pointer to the client struct sending the message
-  ; [rsp+0x18]  -> pointer to the client username
+  ; [rsp+0x10]  -> pointer to the user struct sending the message
+  ; [rsp+0x18]  -> pointer to the user username
   ; [rsp+0x20]  -> now timestamp
 
   ; init socket
@@ -61,8 +61,15 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; set local input file descriptor
+  mov   rdi, STDIN_FILENO
+  mov   rsi, qword [main_fds]
+  call  FD_SET
+  cmp   rax, 0
+  jl    .error
+
   ; create admin user
-  mov   rdi, qword [server_fd]
+  mov   rdi, STDIN_FILENO
   call  create_admin_user
   cmp   rax, 0
   jl    .error
@@ -89,7 +96,7 @@ _start:
   cmp   qword [curr_fd], rax
   jg    .inner_loop_end
 
-  ; filter only active or new clients
+  ; filter only active or new users
   mov   rdi, qword [curr_fd]
   mov   rsi, qword [read_fds]
   call  FD_ISSET
@@ -109,30 +116,30 @@ _start:
 
   inc   qword [active_connections]
 
-  ; add new client 
+  ; add new user 
   mov   rdi, qword [server_fd]
   call  accept_connection
   cmp   rax, 0
   jl    .error
 
-  mov   qword [client_fd], rax
+  mov   qword [user_fd], rax
 
   ; set the file descriptor
-  mov   rdi, qword [client_fd]
+  mov   rdi, qword [user_fd]
   mov   rsi, qword [main_fds]
   call  FD_SET
   cmp   rax, 0
   jl    .error
 
-  mov   rdi, qword [client_fd]
+  mov   rdi, qword [user_fd]
   call  create_user
   cmp   rax, 0
   jl    .error
 
-  mov   [client_struct], rax
+  mov   [user_struct], rax
   
   ; send the welcome message
-  mov   rdi, qword [client_fd]
+  mov   rdi, qword [user_fd]
   mov   rsi, msg
   mov   rdx, msg_len
   call  write_socket
@@ -143,13 +150,13 @@ _start:
 
 .read_msg:
   mov   rdi, qword [curr_fd]
-  call  get_client_by_fd
+  call  get_user_by_fd
   cmp   rax, 0
   jle   .error  ; TODO: probably doing something different if 0
   
   mov   [rsp+0x10], rax
 
-  ; get message from the client
+  ; get message from the user
   mov   rdi, qword [curr_fd]
   mov   rsi, buf
   mov   rdx, BUFSIZ
@@ -160,7 +167,7 @@ _start:
 
   mov   qword [rsp], rax
 
-  ; check if client's username has been set
+  ; check if user's username has been set
   mov   rax, [rsp+0x10]
 
   cmp   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
@@ -235,7 +242,7 @@ _start:
   jmp   .inner_loop
 
 .read_and_send_message:
-  ; check if client is closing the connection
+  ; check if user is closing the connection
   mov   rdi, buf
   mov   rsi, close_msg
   mov   rdx, close_msg_len
@@ -411,13 +418,13 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; remove client from array
+  ; remove user from array
   mov   rdi, qword [curr_fd]
-  call  remove_client_from_array
+  call  remove_user_from_array
   cmp   rax, 0
   jl    .error
 
-  ; free client struct
+  ; free user struct
   mov   rdi, qword [rsp+0x10]
   call  free
 

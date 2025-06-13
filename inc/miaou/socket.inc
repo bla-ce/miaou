@@ -99,7 +99,7 @@ client_init:
   sub   rsp, 0x8
 
   ; *** STACK USAGE *** ;
-  ; [rsp] -> file descriptor of the client
+  ; [rsp] -> file descriptor of the user
 
   ; create the socket
   mov   rdi, AF_INET
@@ -432,9 +432,9 @@ connect_to_socket:
   ret
 
 
-; accepts a connection and returns the client fd
+; accepts a connection and returns the user fd
 ; @param  rdi: server file descriptor
-; @return rax: client file descriptor
+; @return rax: user file descriptor
 accept_connection:
   sub   rsp, 0x10
   sub   rsp, SOCKADDR_STRUCT_LEN

@@ -18,8 +18,8 @@
 
 section .bss
 _client_struct:
-  _client_fd            resq 1
-  _client_username      resq 1
+  _client_fd          resq 1
+  _client_username    resq 1
   _client_color         resq 1
   _client_active        resq 1
   _client_last_message  resq 1
@@ -29,7 +29,7 @@ _client_struct_end:
 section .data
   CLIENT_STRUCT_LEN equ _client_struct_end - _client_struct
   
-  ; client offsets
+  ; user offsets
   CLIENT_STRUCT_OFFSET_FD           equ 0
   CLIENT_STRUCT_OFFSET_USERNAME     equ CLIENT_STRUCT_OFFSET_FD + 0x8
   CLIENT_STRUCT_OFFSET_COLOR        equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
@@ -37,7 +37,7 @@ section .data
   CLIENT_STRUCT_OFFSET_LAST_MESSAGE equ CLIENT_STRUCT_OFFSET_ACTIVE + 0x8
   CLIENT_STRUCT_OFFSET_STRIKES      equ CLIENT_STRUCT_OFFSET_LAST_MESSAGE + 0x8
 
-  msg       db "Hello, Client!", LINE_FEED
+  msg       db "Hello, user!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
   msg_len   equ $ - msg
 
@@ -59,9 +59,10 @@ section .data
   read_fds  dq 0
   main_fds  dq 0
   server_fd dq 0
-  client_fd dq 0
+  user_fd   dq 0
 
-  admin_username      db "admin", NULL_CHAR
+  admin_username      db "admin", LINE_FEED, NULL_CHAR
+  admin_username_len  equ $ - admin_username
   USERNAME_MIN_LENGTH equ 5
   
   curr_fd     dq 0
@@ -73,9 +74,9 @@ section .data
   RATE_LIMIT equ 1      ; rate limiter in second
   STRIKES_LIMIT equ 10  ; after 10 strikes, user is banned
 
-  ; array of clients
-  clients             times MAX_CONNECT dq 0
-  client_struct       dq 0
+  ; array of users
+  users             times MAX_CONNECT dq 0
+  user_struct       dq 0
   active_connections  dq 0
   
   log_starting_server   db "[INFO] starting server...", NULL_CHAR
@@ -176,16 +177,16 @@ send_message_to_all_fds:
   add   rsp, 0x28
   ret
 
-; removes the client from the clients array
-; @param  rdi: file descriptor of the client
-remove_client_from_array:
+; removes the user from the users array
+; @param  rdi: file descriptor of the user
+remove_user_from_array:
   mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 
   xor   rax, rax        ; index
   mov   rbx, rdi        ; store fd in rbx
-  mov   rsi, clients
+  mov   rsi, users
 
 .loop:
   mov   rdi, [rsi] 
@@ -222,18 +223,18 @@ remove_client_from_array:
 .return:
   ret
 
-; returns the client struct with the file descriptor or return 0 if does not
+; returns the user struct with the file descriptor or return 0 if does not
 ; exist
 ; @param  rdi: file descriptor
-; @return rax: pointer to the client struct or null
-get_client_by_fd:
+; @return rax: pointer to the user struct or null
+get_user_by_fd:
   mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 
   xor   rax, rax        ; index
   mov   rbx, rdi        ; store fd in rbx
-  mov   rsi, clients
+  mov   rsi, users
 
 .loop:
   mov   rdi, [rsi] 
@@ -268,9 +269,9 @@ get_client_by_fd:
 .return:
   ret
 
-; creates a normal user from a client connection
-; @param  rdi: file descriptor of the client
-; @return rax: pointer to the client struct
+; creates a normal user from a user connection
+; @param  rdi: file descriptor of the user
+; @return rax: pointer to the user struct
 create_user:
   sub   rsp, 0x10
 
@@ -280,12 +281,12 @@ create_user:
 
   ; *** STACK USAGE *** ;
   ; [rsp]     -> file descriptor of the server
-  ; [rsp+0x8] -> pointer to the user client struct
+  ; [rsp+0x8] -> pointer to the user user struct
 
   mov   qword [rsp], rdi
   mov   qword [rsp+0x8], 0
 
-  ; malloc new client
+  ; malloc new user
   mov   rdi, CLIENT_STRUCT_LEN
   call  malloc
 
@@ -322,8 +323,8 @@ create_user:
   mov   rdi, [rsp+0x8]
   mov   qword [rdi+CLIENT_STRUCT_OFFSET_COLOR], rsi
 
-  ; add client to the array
-  mov   rdi, clients
+  ; add user to the array
+  mov   rdi, users
   add   rdi, rax
   mov   rsi, [rsp+0x8]
   mov   [rdi], rsi
@@ -348,7 +349,7 @@ create_user:
 
 ; creates an admin user from the server
 ; @param  rdi: file descriptor of the server
-; @return rax: pointer to the client struct
+; @return rax: pointer to the user struct
 create_admin_user:
   sub   rsp, 0x8
 
@@ -365,6 +366,7 @@ create_admin_user:
 
   mov   rdi, rax
   mov   rsi, admin_username
+  mov   rdx, admin_username_len
   call  set_user_username
   cmp   rax, 0
   jl    .error
