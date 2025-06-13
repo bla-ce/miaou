@@ -81,14 +81,14 @@ write_socket:
 ; @param  rsi: pointer to the string in which the message will be written
 ; @param  rdx: number of bytes to be read
 ; @return rax: number of bytes read
-recvfrom_socket:
-  mov   rax, SYS_RECVFROM
+read_socket:
+  mov   rax, SYS_READ
   xor   r10, r10
   xor   r8, r8
   xor   r9, r9
   syscall
 
-  mov   qword [miaou_errno], MIAOU_ERROR_RECVFROM_SOCKET
+  mov   qword [miaou_errno], MIAOU_ERROR_READ_SOCKET
 
   ret
 

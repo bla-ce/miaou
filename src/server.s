@@ -87,7 +87,7 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  mov   qword [curr_fd], 0
+  mov   qword [curr_fd], -1   ; curr_fd is incremented at the beginning
 
 .inner_loop:
   inc   qword [curr_fd]
@@ -160,7 +160,7 @@ _start:
   mov   rdi, qword [curr_fd]
   mov   rsi, buf
   mov   rdx, BUFSIZ
-  call  recvfrom_socket
+  call  read_socket
   cmp   rax, 0
   je    .clear_fd
   jl    .error
@@ -319,13 +319,18 @@ _start:
   
   mov   [rsp+0x18], rax
 
-  mov   rdi, rax
+  ; if user is admin, skip print
+  cmp   qword [curr_fd], STDIN_FILENO
+  je    .skip_print
+
+  mov   rdi, [rsp+0x18]
   call  println
 
   mov   qword [miaou_errno], MIAOU_ERROR_PRINT
   cmp   rax, 0
   jl    .error
 
+.skip_print:
   ; send message to each connection
   mov   rdi, [rsp+0x18]
   mov   rsi, qword [server_fd]

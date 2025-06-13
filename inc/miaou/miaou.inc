@@ -71,13 +71,13 @@ section .data
   BUFSIZ  equ 0x400
   buf     times BUFSIZ db 0
 
-  RATE_LIMIT equ 1      ; rate limiter in second
+  RATE_LIMIT    equ 1   ; rate limiter in second
   STRIKES_LIMIT equ 10  ; after 10 strikes, user is banned
 
   ; array of users
-  users             times MAX_CONNECT dq 0
-  user_struct       dq 0
-  active_connections  dq 0
+  users               times MAX_CONNECT dq 0
+  user_struct         dq 0
+  active_connections  dq 1  ; one by default to include server
   
   log_starting_server   db "[INFO] starting server...", NULL_CHAR
   log_waiting           db "[INFO] waiting for connections...", NULL_CHAR
