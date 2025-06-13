@@ -1,0 +1,28 @@
+section .data
+  miaou_errno dq SUCCESS_CODE
+
+  ; error codes
+  MIAOU_ERROR_INVALID_PORT  equ 1
+  MIAOU_ERROR_INVALID_ARG   equ 2
+
+  ; socket errors
+  MIAOU_ERROR_CREATE_SOCKET   equ 3
+  MIAOU_ERROR_SETOPT_SOCKET   equ 4
+  MIAOU_ERROR_BIND_SOCKET     equ 5
+  MIAOU_ERROR_LISTEN_SOCKET   equ 6
+  MIAOU_ERROR_SELECT_SOCKET   equ 7
+  MIAOU_ERROR_ACCEPT_SOCKET   equ 8
+  MIAOU_ERROR_WRITE_SOCKET    equ 9
+  MIAOU_ERROR_RECVFROM_SOCKET equ 10
+
+  ; string errors
+  MIAOU_ERROR_PRINT   equ 11
+  MIAOU_ERROR_STRLEN  equ 12
+
+  ; memory errors
+  MIAOU_ERROR_MALLOC  equ 13
+  MIAOU_ERROR_FREE    equ 14
+
+  ; boeuf buffer errors
+  MIAOU_ERROR_BOEUF   equ 15
+

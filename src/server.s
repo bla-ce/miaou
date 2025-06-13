@@ -23,12 +23,16 @@ _start:
 
   mov   rdi, log_starting_server
   call  println
+
+  mov   qword [miaou_errno], MIAOU_ERROR_PRINT
   cmp   rax, 0
   jl    .error
 
   ; malloc main set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
   call  malloc
+  
+  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
   cmp   rax, 0
   jl    .error
 
@@ -37,6 +41,8 @@ _start:
   ; malloc read set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
   call  malloc
+
+  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
   cmp   rax, 0
   jl    .error
 
@@ -62,14 +68,9 @@ _start:
   mov   rcx, FD_SET_STRUCT_LEN
   rep   movsb
 
-  mov   rax, SYS_SELECT 
   mov   rdi, MAX_CONNECT
-  inc   rdi
   mov   rsi, qword [read_fds]
-  xor   rdx, rdx
-  xor   r10, r10
-  xor   r8, r8
-  syscall
+  call  read_select
   cmp   rax, 0
   jl    .error
 
@@ -120,6 +121,8 @@ _start:
   ; malloc new client
   mov   rdi, CLIENT_STRUCT_LEN
   call  malloc
+
+  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
   cmp   rax, 0
   jl    .error
 
@@ -131,7 +134,7 @@ _start:
 
   mov   rdi, qword [client_fd]
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_FD], rdi
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], 1
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], TRUE
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
   mov   qword [rsi+CLIENT_STRUCT_OFFSET_STRIKES], 0
 
@@ -159,11 +162,10 @@ _start:
   mov   [rdi], rsi
   
   ; send the welcome message
-  mov   rax, SYS_WRITE
   mov   rdi, qword [client_fd]
   mov   rsi, msg
   mov   rdx, msg_len
-  syscall
+  call  write_socket
   cmp   rax, 0
   jl    .error
 
@@ -178,16 +180,13 @@ _start:
   mov   [rsp+0x10], rax
 
   ; get message from the client
-  mov   rax, SYS_RECVFROM
   mov   rdi, qword [curr_fd]
   mov   rsi, buf
   mov   rdx, BUFSIZ
-  xor   r10, r10
-  xor   r8, r8
-  xor   r9, r9
-  syscall
-  cmp   rax, 1
-  jl    .clear_fd
+  call  recvfrom_socket
+  cmp   rax, 0
+  je    .clear_fd
+  jl    .error
 
   mov   qword [rsp], rax
 
@@ -197,9 +196,27 @@ _start:
   cmp   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
   jg    .read_and_send_message
 
+  ; make sure length of the username is greater than 6
+  mov   rax, qword [rsp]
+  cmp   rax, USERNAME_MIN_LENGTH
+  jge   .set_username
+
+  ; send message requiring long enough username
+  mov   rdi, qword [curr_fd]
+  mov   rsi, msg_uname_too_short
+  call  write_socket
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .inner_loop
+
+.set_username:
   ; malloc string for username
   mov   rdi, qword [rsp]
+  inc   rdi               ; add one for null char
   call  malloc
+
+  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
   cmp   rax, 0
   jl    .error
 
@@ -220,14 +237,11 @@ _start:
   stosb
 
   mov   rdi, [rsp+0x18]
-  call  strlen
-  cmp   rax, 0
-  jl    .error
-
-  mov   rdi, [rsp+0x18]
-  mov   rsi, rax
-  dec   rsi
+  mov   rsi, qword [rsp]
+  dec   rsi ; remove new line
   call  boeuf_ncreate
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -236,6 +250,8 @@ _start:
   mov   rdi, rax
   mov   rsi, log_new_connection
   call  boeuf_append
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -243,6 +259,8 @@ _start:
 
   mov   rdi, rax
   call  println
+
+  mov   qword [miaou_errno], MIAOU_ERROR_PRINT
   cmp   rax, 0
   jl    .error
 
@@ -257,6 +275,8 @@ _start:
 
   mov   rdi, [rsp+0x18]
   call  boeuf_free
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -304,6 +324,8 @@ _start:
   mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]
   mov   rdi, rsi
   call  boeuf_create
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -314,12 +336,16 @@ _start:
   mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_USERNAME]
   mov   rdi, [rsp+0x18]
   call  boeuf_append
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
   mov   rdi, rax
   mov   rsi, DEFAULT_FG
   call  boeuf_append
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -327,6 +353,8 @@ _start:
   mov   rsi, buf
   mov   rdx, qword [rsp]
   call  boeuf_nappend
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
   
@@ -334,6 +362,8 @@ _start:
 
   mov   rdi, rax
   call  println
+
+  mov   qword [miaou_errno], MIAOU_ERROR_PRINT
   cmp   rax, 0
   jl    .error
 
@@ -349,6 +379,8 @@ _start:
   ; free boeuf buffer
   mov   rdi, [rsp+0x18]
   call  boeuf_free
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -356,13 +388,14 @@ _start:
   
 .clear_fd:
   ; close connection
-  mov   rax, SYS_CLOSE
   mov   rdi, qword [curr_fd]
-  syscall
+  call  close_socket
 
   mov   rsi, [rsp+0x10]
   mov   rdi, qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
   call  strlen
+
+  mov   qword [miaou_errno], MIAOU_ERROR_STRLEN
   cmp   rax, 0
   jl    .error
 
@@ -371,12 +404,16 @@ _start:
   mov   rsi, rax
   dec   rsi
   call  boeuf_ncreate
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
   mov   rdi, rax
   mov   rsi, log_close
   call  boeuf_append
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -384,6 +421,8 @@ _start:
 
   mov   rdi, [rsp+0x18]
   call  println
+
+  mov   qword [miaou_errno], MIAOU_ERROR_PRINT
   cmp   rax, 0
   jl    .error
 
@@ -406,6 +445,8 @@ _start:
   ; free boeuf buffer
   mov   rdi, [rsp+0x18]
   call  boeuf_free
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
 
@@ -413,6 +454,8 @@ _start:
   mov   rsi, [rsp+0x10]
   mov   rdi, [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
   call  free
+
+  mov   qword [miaou_errno], MIAOU_ERROR_FREE
   cmp   rax, 0
   jl    .error
 
@@ -425,6 +468,8 @@ _start:
   ; free client struct
   mov   rdi, qword [rsp+0x10]
   call  free
+
+  mov   qword [miaou_errno], MIAOU_ERROR_FREE
   cmp   rax, 0
   jl    .error
 
@@ -439,12 +484,11 @@ _start:
   call  exit
 
 .error:
-  mov   rdi, FAILURE_CODE
   call  exit
 
-; exits the program with code
-; @param  rdi: exit code
+; exits the program with error code
 exit:
   mov   rax, SYS_EXIT
+  mov   rdi, qword [miaou_errno]
   syscall
 

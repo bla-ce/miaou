@@ -2,6 +2,7 @@
 %include "boeuf.inc"
 %include "calloc.inc"
 %include "constants.inc"
+%include "error.inc"
 %include "file.inc"
 %include "free.inc"
 %include "hash_table.inc"
@@ -59,14 +60,16 @@ section .data
   main_fds  dq 0
   server_fd dq 0
   client_fd dq 0
+
+  USERNAME_MIN_LENGTH equ 6
   
   curr_fd     dq 0
   MAX_CONNECT equ 10
    
-  BUFSIZ equ 0x400
-  buf times BUFSIZ db 0
+  BUFSIZ  equ 0x400
+  buf     times BUFSIZ db 0
 
-  RATE_LIMIT equ 2      ; rate limiter in second
+  RATE_LIMIT equ 1      ; rate limiter in second
   STRIKES_LIMIT equ 10  ; after 10 strikes, user is banned
 
   ; array of clients
@@ -79,8 +82,13 @@ section .data
 
   log_should_be_banned db "[WARN] user should be banned", NULL_CHAR
 
+  log_connection_failed db "[ERROR] failed to connect to server", NULL_CHAR
+
   log_new_connection  db " joined the chat", NULL_CHAR
   log_close           db " left the chat", NULL_CHAR
+
+  msg_uname_too_short db "The username you provided is too short", LINE_FEED
+                      db "Please enter new username (min 6 char)", NULL_CHAR
 
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $ - close_msg - 1
@@ -95,6 +103,7 @@ section .text;
 send_message_to_all_fds:
   sub   rsp, 0x28
 
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 
@@ -121,6 +130,8 @@ send_message_to_all_fds:
 
   mov   rdi, [rsp]
   call  strlen
+
+  mov   qword [miaou_errno], MIAOU_ERROR_STRLEN
   cmp   rax, 0
   jl    .error
 
@@ -143,17 +154,15 @@ send_message_to_all_fds:
   jl    .error
   je    .send_loop
 
-  mov   rax, SYS_WRITE
   mov   rdi, qword [rsp+0x8]
   mov   rsi, [rsp]
   mov   rdx, qword [rsp+0x20]
   inc   rdx                     ; include null char
-  syscall
+  call  write_socket
   cmp   rax, 0
   jl    .error
 
   jmp   .send_loop
-
 .send_loop_end:
 
   mov   rax, SUCCESS_CODE
@@ -169,6 +178,7 @@ send_message_to_all_fds:
 ; removes the client from the clients array
 ; @param  rdi: file descriptor of the client
 remove_client_from_array:
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 
@@ -216,6 +226,7 @@ remove_client_from_array:
 ; @param  rdi: file descriptor
 ; @return rax: pointer to the client struct or null
 get_client_by_fd:
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 

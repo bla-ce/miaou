@@ -94,6 +94,7 @@ FD_CLR:
 ; @param  rdi: pointer to file descriptors set
 ; @return rax: return code
 FD_ZERO:
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 
@@ -118,6 +119,7 @@ FD_ZERO:
 FD_SET:
   sub   rsp, 0x28
 
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 
@@ -194,6 +196,7 @@ FD_SET:
 FD_ISSET:
   sub   rsp, 0x28
 
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
   cmp   rdi, 0
   jl    .error
 

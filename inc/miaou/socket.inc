@@ -44,6 +44,54 @@ htons:
   xchg  al, ah ; bswap 16-bit registers
   ret
 
+; wait until a file descriptor from the set is ready for I/O 
+; @param  rdi: max number of fd
+; @param  rsi: set of file descriptors to be read
+; @return rax: return code
+; @return rax: return code
+read_select:
+  mov   rax, SYS_SELECT 
+  mov   rdi, MAX_CONNECT
+  inc   rdi
+  mov   rsi, qword [read_fds]
+  xor   rdx, rdx
+  xor   r10, r10
+  xor   r8, r8
+  syscall
+
+  mov   qword [miaou_errno], MIAOU_ERROR_SELECT_SOCKET
+
+  ret
+
+; write a message to a file descriptor
+; @param  rdi: file descriptor
+; @param  rsi: pointer to the message
+; @param  rdx: number of bytes to write
+; @return rax: number of bytes written
+write_socket:
+  mov   rax, SYS_WRITE
+  syscall
+
+  mov   qword [miaou_errno], MIAOU_ERROR_WRITE_SOCKET
+
+  ret
+
+; receive a message from a file descriptor
+; @param  rdi: file descriptor
+; @param  rsi: pointer to the string in which the message will be written
+; @param  rdx: number of bytes to be read
+; @return rax: number of bytes read
+recvfrom_socket:
+  mov   rax, SYS_RECVFROM
+  xor   r10, r10
+  xor   r8, r8
+  xor   r9, r9
+  syscall
+
+  mov   qword [miaou_errno], MIAOU_ERROR_RECVFROM_SOCKET
+
+  ret
+
 ; initialise the client socket (create, connect)
 ; @param  rdi: port the socket will be listening to
 ; @return rax: file descriptor of the socket
@@ -95,6 +143,7 @@ client_init:
 server_init:
   sub   rsp, 0x10
 
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_PORT
   cmp   rdi, 0
   jle   .error
 
@@ -104,6 +153,8 @@ server_init:
   mov   rsi, SOCK_STREAM
   mov   rdx, 0
   call  create_socket
+
+  mov   qword [miaou_errno], MIAOU_ERROR_CREATE_SOCKET
   cmp   rax, 0
   jl    .error
 
@@ -114,12 +165,16 @@ server_init:
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEPORT
   call  set_socket_option
+
+  mov   qword [miaou_errno], MIAOU_ERROR_SETOPT_SOCKET
   jl    .error
 
   mov   rdi, qword [rsp+0x8]
   mov   rsi, SOL_SOCKET
   mov   rdx, SO_REUSEADDR
   call  set_socket_option
+
+  mov   qword [miaou_errno], MIAOU_ERROR_SETOPT_SOCKET
   cmp   rax, 0
   jl    .error
 
@@ -127,6 +182,8 @@ server_init:
   mov   rdi, qword [rsp+0x8]
   mov   rdx, AF_INET
   call  bind_socket
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BIND_SOCKET
   cmp   rax, 0
   jl    .error
 
@@ -134,6 +191,8 @@ server_init:
   mov   rdi, qword [rsp+0x8]
   mov   rsi, DEFAULT_BACKLOG
   call  listen_socket
+
+  mov   qword [miaou_errno], MIAOU_ERROR_LISTEN_SOCKET
   cmp   rax, 0
   jl    .error
 
@@ -380,6 +439,10 @@ accept_connection:
   sub   rsp, 0x10
   sub   rsp, SOCKADDR_STRUCT_LEN
 
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
+  cmp   rdi, 0
+  jl    .error
+
   ; *** STACK USAGE *** ;
   ; [rsp]     -> server file descriptor
   ; [rsp+0x8] -> sockaddr struct
@@ -401,6 +464,8 @@ accept_connection:
   lea   rsi, [rsp+0x8]
   lea   rdx, [addrlen]
   syscall
+
+  mov   qword [miaou_errno], MIAOU_ERROR_ACCEPT_SOCKET
   cmp   rax, 0
   jl    .error
 
@@ -414,4 +479,12 @@ accept_connection:
   add   rsp, 0x10
   ret
 
+; closes the file descriptor
+; @param  rdi: file descriptor
+; @return rax: return code
+close_socket:
+  mov   rax, SYS_CLOSE
+  syscall
+
+  ret
 

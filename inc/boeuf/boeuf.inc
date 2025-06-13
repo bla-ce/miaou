@@ -246,10 +246,6 @@ boeuf_nappend:
   mov   rax, NULL_CHAR
   stosb
 
-  mov   qword [boeuf_errno], BOEUF_MEMORY_ERROR
-  cmp   rax, 0
-  jl    .error
-
   mov   rax, [rsp+0x28]
   add   rax, BOEUF_METADATA_OFF_DATA
 

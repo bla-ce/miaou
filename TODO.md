@@ -17,10 +17,14 @@
 - [x] Rate limiting
 - [x] Username with less than 3 char bug after being banned
 - [x] Exclude users from chat after 10 strikes
-- [ ] Ban users after 10 strikes
+- [x] Return server unavailable if can't connect
+- [x] Better error handling
+    - [x] If crash, return defined error code
+- [x] Fix username bug
+- [x] Add a minimum limit for username
+- [ ] Get more functions
 - [ ] Add message time
-- [ ] Return server unavailable if can't connect
-- [ ] Better error handling to hope for crash free
+- [ ] Ban users after 10 strikes
 - [ ] Create groups
 - [ ] Add password and accounts
 - [ ] Give different role to the chat

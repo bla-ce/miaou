@@ -17,7 +17,7 @@ _start:
   mov   rdx, AF_INET
   call  connect_to_socket
   cmp   rax, 0
-  jl    .error
+  jl    .error_connect
 
   ; malloc read set of file descriptors
   mov   rdi, FD_SET_STRUCT_LEN
@@ -115,6 +115,10 @@ _start:
 .exit:
   mov   rdi, SUCCESS_CODE
   call  exit
+
+.error_connect:
+  mov   rdi, log_connection_failed
+  call  println
 
 .error:
   mov   rdi, FAILURE_CODE
