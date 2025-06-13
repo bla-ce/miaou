@@ -61,7 +61,8 @@ section .data
   server_fd dq 0
   client_fd dq 0
 
-  USERNAME_MIN_LENGTH equ 6
+  admin_username      db "admin", NULL_CHAR
+  USERNAME_MIN_LENGTH equ 5
   
   curr_fd     dq 0
   MAX_CONNECT equ 10
@@ -265,5 +266,188 @@ get_client_by_fd:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; creates a normal user from a client connection
+; @param  rdi: file descriptor of the client
+; @return rax: pointer to the client struct
+create_user:
+  sub   rsp, 0x10
+
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
+  cmp   rdi, 0
+  jl    .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> file descriptor of the server
+  ; [rsp+0x8] -> pointer to the user client struct
+
+  mov   qword [rsp], rdi
+  mov   qword [rsp+0x8], 0
+
+  ; malloc new client
+  mov   rdi, CLIENT_STRUCT_LEN
+  call  malloc
+
+  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp+0x8], rax
+
+  call  now
+
+  mov   rsi, [rsp+0x8] 
+
+  mov   rdi, qword [rsp]
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_FD], rdi
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], TRUE
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_STRIKES], 0
+
+  ; username will be assigned later
+  mov   qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME], 0
+
+  ; get color
+  xor   rdx, rdx
+  mov   rax, qword [active_connections]
+  dec   rax
+  mov   rbx, 8
+  mul   rbx
+
+  mov   rdi, colors
+  add   rdi, rax
+
+  mov   rsi, [rdi]
+  mov   rdi, [rsp+0x8]
+  mov   qword [rdi+CLIENT_STRUCT_OFFSET_COLOR], rsi
+
+  ; add client to the array
+  mov   rdi, clients
+  add   rdi, rax
+  mov   rsi, [rsp+0x8]
+  mov   [rdi], rsi
+
+  mov   rax, [rsp+0x8]
+
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x8]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x10
+  ret
+
+; creates an admin user from the server
+; @param  rdi: file descriptor of the server
+; @return rax: pointer to the client struct
+create_admin_user:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> file descriptor of the server
+  ; [rsp+0x8] -> pointer to the user struct
+
+  ; create_user checks arg
+  call  create_user
+  cmp   rax, 0
+  jl    .error
+
+  mov   [rsp], rax
+
+  mov   rdi, rax
+  mov   rsi, admin_username
+  call  set_user_username
+  cmp   rax, 0
+  jl    .error
+
+  mov   rax, [rsp]
+
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+
+; sets the user's username
+; @param  rdi: pointer to the user struct
+; @param  rsi: pointer to the username
+; @param  rdx: length of the username
+; @return rax: return code
+set_user_username:
+  sub   rsp, 0x20
+
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
+  cmp   rdi, 0
+  jl    .error
+
+  cmp   rsi, 0
+  jl    .error
+  
+  cmp   rdx, 0
+  jl    .error
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the user struct
+  ; [rsp+0x8]   -> pointer to the username
+  ; [rsp+0x10]  -> length of the username
+  ; [rsp+0x18]  -> pointer to the mallocd username
+
+  mov   [rsp], rdi
+  mov   [rsp+0x8], rsi
+  mov   qword [rsp+0x10], rdx
+  mov   qword [rsp+0x18], 0
+
+  ; malloc string for username
+  mov   rdi, rdx
+  inc   rdi               ; add one for null char
+  call  malloc
+
+  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
+  cmp   rax, 0
+  jl    .error
+
+  ; set username
+  mov   rdi, [rsp]
+  mov   [rdi+CLIENT_STRUCT_OFFSET_USERNAME], rax
+
+  mov   [rsp+0x18], rax
+
+  ; copy username
+  mov   rdi, rax
+  mov   rsi, [rsp+0x8]
+  mov   rcx, [rsp+0x10]
+  rep   movsb
+
+  ; add null char
+  mov   rax, NULL_CHAR
+  stosb
+
+  mov   rax, SUCCESS_CODE
+  jmp   .return
+
+.error:
+  mov   rdi, [rsp+0x10]
+  test  rdi, rdi
+  jz    .no_free
+
+  call  free
+
+.no_free:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
   ret
 

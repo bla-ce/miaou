@@ -1,27 +1,14 @@
-- [x] Server prints new client
-- [x] Client reads user input and send it to server
-- [x] Server prints message from client
-- [x] Accept multiple connections
-- [x] Send message to all fd
-- [x] Setup username before connection
-- [x] New message log format with color:
-        username: 
-        msg
-- [x] Use different colors for each user
-- [x] Close connection on error or if '!close' is sent
-- [x] Handle server shutting down
-- [x] handle client quitting the server
-- [x] connect and disconnect log with username
-- [x] Send message function to all fds
-- [x] Send connect and disconnect log to all fds
-- [x] Rate limiting
-- [x] Username with less than 3 char bug after being banned
-- [x] Exclude users from chat after 10 strikes
 - [x] Return server unavailable if can't connect
 - [x] Better error handling
     - [x] If crash, return defined error code
 - [x] Fix username bug
 - [x] Add a minimum limit for username
+- [x] Set server as admin user
+- [ ] rename clients to users
+- [ ] Add admin command
+- [ ] store username without \n
+- [ ] username validation
+- [ ] Reduce scope of globals
 - [ ] Get more functions
 - [ ] Add message time
 - [ ] Ban users after 10 strikes

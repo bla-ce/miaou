@@ -61,6 +61,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
+  ; create admin user
+  mov   rdi, qword [server_fd]
+  call  create_admin_user
+  cmp   rax, 0
+  jl    .error
+  
 .loop:
   ; back up main fd set
   mov   rdi, qword [read_fds]
@@ -118,48 +124,12 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; malloc new client
-  mov   rdi, CLIENT_STRUCT_LEN
-  call  malloc
-
-  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
+  mov   rdi, qword [client_fd]
+  call  create_user
   cmp   rax, 0
   jl    .error
 
   mov   [client_struct], rax
-
-  call  now
-
-  mov   rsi, [client_struct] 
-
-  mov   rdi, qword [client_fd]
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_FD], rdi
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], TRUE
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_STRIKES], 0
-
-  ; username will be assigned later
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME], 0
-
-  ; get color
-  xor   rdx, rdx
-  mov   rax, qword [active_connections]
-  dec   rax
-  mov   rbx, 8
-  mul   rbx
-
-  mov   rdi, colors
-  add   rdi, rax
-
-  mov   rsi, [rdi]
-  mov   rdi, [client_struct]
-  mov   qword [rdi+CLIENT_STRUCT_OFFSET_COLOR], rsi
-
-  ; add client to the array
-  mov   rdi, clients
-  add   rdi, rax
-  mov   rsi, [client_struct]
-  mov   [rdi], rsi
   
   ; send the welcome message
   mov   rdi, qword [client_fd]
@@ -211,32 +181,14 @@ _start:
   jmp   .inner_loop
 
 .set_username:
-  ; malloc string for username
-  mov   rdi, qword [rsp]
-  inc   rdi               ; add one for null char
-  call  malloc
-
-  mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
+  mov   rdi, [rsp+0x10]
+  mov   rsi, buf
+  mov   rdx, qword [rsp]
+  call  set_user_username
   cmp   rax, 0
   jl    .error
 
-  ; set username
-  mov   rdi, [rsp+0x10]
-  mov   [rdi+CLIENT_STRUCT_OFFSET_USERNAME], rax
-
-  mov   [rsp+0x18], rax
-
-  ; copy username
-  mov   rdi, rax
-  mov   rsi, buf
-  mov   rcx, qword [rsp]
-  rep   movsb
-
-  ; add null char
-  mov   rax, NULL_CHAR
-  stosb
-
-  mov   rdi, [rsp+0x18]
+  mov   rdi, buf
   mov   rsi, qword [rsp]
   dec   rsi ; remove new line
   call  boeuf_ncreate
