@@ -170,13 +170,13 @@ _start:
   ; check if user's username has been set
   mov   rax, [rsp+0x10]
 
-  cmp   qword [rax+CLIENT_STRUCT_OFFSET_USERNAME], 0
+  cmp   qword [rax+USER_STRUCT_OFFSET_USERNAME], 0
   jg    .read_and_send_message
 
   ; make sure length of the username is greater than 6
   mov   rax, qword [rsp]
   cmp   rax, USERNAME_MIN_LENGTH
-  jge   .set_username
+  jg    .set_username
 
   ; send message requiring long enough username
   mov   rdi, qword [curr_fd]
@@ -197,7 +197,7 @@ _start:
 
   mov   rdi, buf
   mov   rsi, qword [rsp]
-  dec   rsi ; remove new line
+  dec   rsi
   call  boeuf_ncreate
 
   mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
@@ -249,6 +249,7 @@ _start:
   call  strncmp
   je    .clear_fd
 
+  ; remove restrictions for admin
   mov   rax, qword [curr_fd]
   cmp   rax, STDIN_FILENO
   je    .message_allowed
@@ -257,9 +258,9 @@ _start:
   call  now 
 
   mov   rdi, [rsp+0x10]
-  mov   rbx, qword [rdi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE]
+  mov   rbx, qword [rdi+USER_STRUCT_OFFSET_LAST_MESSAGE]
 
-  mov   qword [rdi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
+  mov   qword [rdi+USER_STRUCT_OFFSET_LAST_MESSAGE], rax
 
   sub   rax, rbx
   
@@ -267,10 +268,16 @@ _start:
   jge   .message_allowed
 
   ; add one strike
-  inc   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES]
+  inc   qword [rdi+USER_STRUCT_OFFSET_STRIKES]
 
+<<<<<<< HEAD
   cmp   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
+=======
+  cmp   qword [rdi+USER_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
+>>>>>>> 8c4d2fd (rename client to user)
   jl    .no_ban   
+
+  ; TODO: ban user
 
   jmp   .clear_fd
 
@@ -283,7 +290,7 @@ _start:
 
   ; create boeuf buffer to display message
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]
+  mov   rsi, [rdi+USER_STRUCT_OFFSET_COLOR]
   mov   rdi, rsi
   call  boeuf_create
 
@@ -295,7 +302,7 @@ _start:
 
   ; get username
   mov   rdi, [rsp+0x10]
-  mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_USERNAME]
+  mov   rsi, [rdi+USER_STRUCT_OFFSET_USERNAME]
   mov   rdi, [rsp+0x18]
   call  boeuf_append
 
@@ -363,7 +370,7 @@ _start:
   call  close_socket
 
   mov   rsi, [rsp+0x10]
-  mov   rdi, qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
+  mov   rdi, qword [rsi+USER_STRUCT_OFFSET_USERNAME]
   call  strlen
 
   mov   qword [miaou_errno], MIAOU_ERROR_STRLEN
@@ -371,7 +378,7 @@ _start:
   jl    .error
 
   mov   rsi, [rsp+0x10]
-  mov   rdi, qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
+  mov   rdi, qword [rsi+USER_STRUCT_OFFSET_USERNAME]
   mov   rsi, rax
   dec   rsi
   call  boeuf_ncreate
@@ -423,7 +430,7 @@ _start:
 
   ; free username
   mov   rsi, [rsp+0x10]
-  mov   rdi, [rsi+CLIENT_STRUCT_OFFSET_USERNAME]
+  mov   rdi, [rsi+USER_STRUCT_OFFSET_USERNAME]
   call  free
 
   mov   qword [miaou_errno], MIAOU_ERROR_FREE

@@ -17,29 +17,29 @@
 %include "time.inc"
 
 section .bss
-_client_struct:
-  _client_fd          resq 1
-  _client_username    resq 1
-  _client_color         resq 1
-  _client_active        resq 1
-  _client_last_message  resq 1
-  _client_strikes       resq 1
-_client_struct_end:
+_user_struct:
+  _user_fd          resq 1
+  _user_username    resq 1
+  _user_color         resq 1
+  _user_active        resq 1
+  _user_last_message  resq 1
+  _user_strikes       resq 1
+_user_struct_end:
 
 section .data
-  CLIENT_STRUCT_LEN equ _client_struct_end - _client_struct
+  USER_STRUCT_LEN equ _user_struct_end - _user_struct
   
   ; user offsets
-  CLIENT_STRUCT_OFFSET_FD           equ 0
-  CLIENT_STRUCT_OFFSET_USERNAME     equ CLIENT_STRUCT_OFFSET_FD + 0x8
-  CLIENT_STRUCT_OFFSET_COLOR        equ CLIENT_STRUCT_OFFSET_USERNAME + 0x8
-  CLIENT_STRUCT_OFFSET_ACTIVE       equ CLIENT_STRUCT_OFFSET_COLOR + 0x8
-  CLIENT_STRUCT_OFFSET_LAST_MESSAGE equ CLIENT_STRUCT_OFFSET_ACTIVE + 0x8
-  CLIENT_STRUCT_OFFSET_STRIKES      equ CLIENT_STRUCT_OFFSET_LAST_MESSAGE + 0x8
+  USER_STRUCT_OFFSET_FD           equ 0
+  USER_STRUCT_OFFSET_USERNAME     equ USER_STRUCT_OFFSET_FD + 0x8
+  USER_STRUCT_OFFSET_COLOR        equ USER_STRUCT_OFFSET_USERNAME + 0x8
+  USER_STRUCT_OFFSET_ACTIVE       equ USER_STRUCT_OFFSET_COLOR + 0x8
+  USER_STRUCT_OFFSET_LAST_MESSAGE equ USER_STRUCT_OFFSET_ACTIVE + 0x8
+  USER_STRUCT_OFFSET_STRIKES      equ USER_STRUCT_OFFSET_LAST_MESSAGE + 0x8
 
   msg       db "Hello, user!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
-  msg_len   equ $ - msg
+  msg_len   equ $-msg - 1
 
   RED_FG          db 0x1b, "[31m", NULL_CHAR
   GREEN_FG        db 0x1b, "[32m", NULL_CHAR
@@ -62,7 +62,7 @@ section .data
   user_fd   dq 0
 
   admin_username      db "admin", LINE_FEED, NULL_CHAR
-  admin_username_len  equ $ - admin_username
+  admin_username_len  equ $-admin_username - 1
   USERNAME_MIN_LENGTH equ 3
   
   curr_fd     dq 0
@@ -93,7 +93,7 @@ section .data
                       db "Please enter new username (min 3 char)", NULL_CHAR
 
   close_msg     db "!close", LINE_FEED, NULL_CHAR
-  close_msg_len equ $ - close_msg - 1
+  close_msg_len equ $-close_msg - 1
 
 section .text;
 ; sends the string in rdi to all file descriptors set
@@ -193,7 +193,7 @@ remove_user_from_array:
   cmp   rdi, 0
   je    .null_struct
 
-  cmp   qword [rdi+CLIENT_STRUCT_OFFSET_FD], rbx
+  cmp   qword [rdi+USER_STRUCT_OFFSET_FD], rbx
   je    .loop_end
 
 .null_struct:
@@ -241,7 +241,7 @@ get_user_by_fd:
   cmp   rdi, 0
   je    .null_struct
 
-  cmp   qword [rdi+CLIENT_STRUCT_OFFSET_FD], rbx
+  cmp   qword [rdi+USER_STRUCT_OFFSET_FD], rbx
   je    .loop_end
 
 .null_struct:
@@ -287,7 +287,7 @@ create_user:
   mov   qword [rsp+0x8], 0
 
   ; malloc new user
-  mov   rdi, CLIENT_STRUCT_LEN
+  mov   rdi, USER_STRUCT_LEN
   call  malloc
 
   mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
@@ -301,13 +301,13 @@ create_user:
   mov   rsi, [rsp+0x8] 
 
   mov   rdi, qword [rsp]
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_FD], rdi
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_ACTIVE], TRUE
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_LAST_MESSAGE], rax
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_STRIKES], 0
+  mov   qword [rsi+USER_STRUCT_OFFSET_FD], rdi
+  mov   qword [rsi+USER_STRUCT_OFFSET_ACTIVE], TRUE
+  mov   qword [rsi+USER_STRUCT_OFFSET_LAST_MESSAGE], rax
+  mov   qword [rsi+USER_STRUCT_OFFSET_STRIKES], 0
 
   ; username will be assigned later
-  mov   qword [rsi+CLIENT_STRUCT_OFFSET_USERNAME], 0
+  mov   qword [rsi+USER_STRUCT_OFFSET_USERNAME], 0
 
   ; get color
   xor   rdx, rdx
@@ -321,7 +321,7 @@ create_user:
 
   mov   rsi, [rdi]
   mov   rdi, [rsp+0x8]
-  mov   qword [rdi+CLIENT_STRUCT_OFFSET_COLOR], rsi
+  mov   qword [rdi+USER_STRUCT_OFFSET_COLOR], rsi
 
   ; add user to the array
   mov   rdi, users
@@ -412,17 +412,13 @@ set_user_username:
   mov   qword [rsp+0x18], 0
 
   ; malloc string for username
-  mov   rdi, rdx
+  mov   rdi, qword [rsp+0x10]
   inc   rdi               ; add one for null char
   call  malloc
 
   mov   qword [miaou_errno], MIAOU_ERROR_MALLOC
   cmp   rax, 0
   jl    .error
-
-  ; set username
-  mov   rdi, [rsp]
-  mov   [rdi+CLIENT_STRUCT_OFFSET_USERNAME], rax
 
   mov   [rsp+0x18], rax
 
@@ -435,6 +431,12 @@ set_user_username:
   ; add null char
   mov   rax, NULL_CHAR
   stosb
+
+  mov   rax, [rsp+0x18]
+
+  ; set username
+  mov   rdi, [rsp]
+  mov   [rdi+USER_STRUCT_OFFSET_USERNAME], rax
 
   mov   rax, SUCCESS_CODE
   jmp   .return
