@@ -63,7 +63,7 @@ section .data
 
   admin_username      db "admin", LINE_FEED, NULL_CHAR
   admin_username_len  equ $ - admin_username
-  USERNAME_MIN_LENGTH equ 5
+  USERNAME_MIN_LENGTH equ 3
   
   curr_fd     dq 0
   MAX_CONNECT equ 10
@@ -90,7 +90,7 @@ section .data
   log_close           db " left the chat", NULL_CHAR
 
   msg_uname_too_short db "The username you provided is too short", LINE_FEED
-                      db "Please enter new username (min 6 char)", NULL_CHAR
+                      db "Please enter new username (min 3 char)", NULL_CHAR
 
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $ - close_msg - 1

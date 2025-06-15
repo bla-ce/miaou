@@ -249,8 +249,8 @@ _start:
   call  strncmp
   je    .clear_fd
 
-  ; server does not have restrictions
-  cmp   qword [curr_fd], 0
+  mov   rax, qword [curr_fd]
+  cmp   rax, STDIN_FILENO
   je    .message_allowed
 
   ; check rate limiter
@@ -282,6 +282,7 @@ _start:
   mov   rdi, [rsp+0x10]
 
   ; create boeuf buffer to display message
+  mov   rdi, [rsp+0x10]
   mov   rsi, [rdi+CLIENT_STRUCT_OFFSET_COLOR]
   mov   rdi, rsi
   call  boeuf_create

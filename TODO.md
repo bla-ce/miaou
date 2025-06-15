@@ -8,10 +8,14 @@
 - [x] rename clients to users
 - [x] if admin send '!close', shut down the server
 - [x] Remove restrictions for admin
+<<<<<<< HEAD
 - [ ] Add admin command
+=======
+>>>>>>> fd021ca (FEAT: remove restrictions for admin)
 - [ ] Store message length
 - [ ] store username without \n
 - [ ] username validation
+- [ ] Add admin command
 - [ ] Reduce scope of globals
 - [ ] Get more functions
 - [ ] Add message time
