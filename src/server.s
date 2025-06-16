@@ -270,11 +270,7 @@ _start:
   ; add one strike
   inc   qword [rdi+USER_STRUCT_OFFSET_STRIKES]
 
-<<<<<<< HEAD
-  cmp   qword [rdi+CLIENT_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
-=======
   cmp   qword [rdi+USER_STRUCT_OFFSET_STRIKES], STRIKES_LIMIT
->>>>>>> 8c4d2fd (rename client to user)
   jl    .no_ban   
 
   ; TODO: ban user
