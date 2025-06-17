@@ -11,6 +11,7 @@
 - [x] Rename client to user
 - [x] store username without \n, fixing the bug
 - [x] Update message format
+- [x] There is an error happening, causing boeuf to fail
 - [ ] username validation
 - [ ] Add admin command
 - [ ] Reduce scope of globals
