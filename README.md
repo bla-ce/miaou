@@ -2,6 +2,8 @@
 
 A simple chat server and client implemented entirely in Assembly for x86-64 Linux.
 
+Chat means cat in French, hence the project name Miaou echoing the sound a cat makes in French.
+
 ### Prerequisites
 
 * NASM assembler
