@@ -20,6 +20,7 @@ section .bss
 _user_struct:
   _user_fd            resq 1
   _user_username      resq 1
+  _user_color         resq 1
   _user_active        resq 1
   _user_last_message  resq 1
   _user_strikes       resq 1
@@ -31,13 +32,28 @@ section .data
   ; user offsets
   USER_STRUCT_OFFSET_FD           equ 0
   USER_STRUCT_OFFSET_USERNAME     equ USER_STRUCT_OFFSET_FD + 0x8
-  USER_STRUCT_OFFSET_ACTIVE       equ USER_STRUCT_OFFSET_USERNAME + 0x8
+  USER_STRUCT_OFFSET_COLOR        equ USER_STRUCT_OFFSET_USERNAME + 0x8
+  USER_STRUCT_OFFSET_ACTIVE       equ USER_STRUCT_OFFSET_COLOR + 0x8
   USER_STRUCT_OFFSET_LAST_MESSAGE equ USER_STRUCT_OFFSET_ACTIVE + 0x8
   USER_STRUCT_OFFSET_STRIKES      equ USER_STRUCT_OFFSET_LAST_MESSAGE + 0x8
 
   msg       db "Hello, user!", LINE_FEED
             db "Enter your username: ", NULL_CHAR
   msg_len   equ $-msg - 1
+
+  RED_FG          db 0x1b, "[31m", NULL_CHAR
+  GREEN_FG        db 0x1b, "[32m", NULL_CHAR
+  YELLOW_FG       db 0x1b, "[33m", NULL_CHAR
+  BLUE_FG         db 0x1b, "[34m", NULL_CHAR
+  MAGENTA_FG      db 0x1b, "[35m", NULL_CHAR
+  CYAN_FG         db 0x1b, "[36m", NULL_CHAR
+  GRAY_FG         db 0x1b, "[90m", NULL_CHAR
+  BRIGHT_RED_FG   db 0x1b, "[91m", NULL_CHAR
+  BRIGHT_GREEN_FG db 0x1b, "[92m", NULL_CHAR
+  DEFAULT_FG      db 0x1b, "[39m", NULL_CHAR
+
+  colors  dq RED_FG, GREEN_FG, YELLOW_FG, BLUE_FG, MAGENTA_FG, CYAN_FG
+          dq GRAY_FG, BRIGHT_RED_FG, BRIGHT_GREEN_FG
 
   uname_msg_delim db COLON, LINE_FEED, SPACE, SPACE, NULL_CHAR
 
@@ -300,6 +316,13 @@ create_user:
   dec   rax
   mov   rbx, 8
   mul   rbx
+
+  mov   rdi, colors
+  add   rdi, rax
+  mov   rsi, [rdi]
+  mov   rdi, [rsp+0x8]
+
+  mov   qword [rdi+USER_STRUCT_OFFSET_COLOR], rsi
 
   ; add user to the array
   mov   rdi, users

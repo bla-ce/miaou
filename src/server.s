@@ -286,14 +286,34 @@ _start:
   mov   rdi, [rsp+0x10]
 
   ; create boeuf buffer to display message
-  ; get username
-  mov   rsi, [rsp+0x10]
-  mov   rdi, [rsi+USER_STRUCT_OFFSET_USERNAME]
+  ; get color
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rdi+USER_STRUCT_OFFSET_COLOR]
+  mov   rdi, rsi
   call  boeuf_create
 
   mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
   cmp   rax, 0
   jl    .error
+
+  mov   [rsp+0x18], rax
+
+  ; get username
+  mov   rdi, [rsp+0x10]
+  mov   rsi, [rdi+USER_STRUCT_OFFSET_USERNAME]
+  mov   rdi, [rsp+0x18]
+  call  boeuf_append
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
+  cmp   rax, 0
+  jl    .error
+
+  ; reset color
+  mov   rdi, rax
+  mov   rsi, DEFAULT_FG
+  call  boeuf_append
+
+  mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
 
   mov   rdi, rax
   mov   rsi, uname_msg_delim
