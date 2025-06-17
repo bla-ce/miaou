@@ -27,6 +27,16 @@ _user_struct:
 _user_struct_end:
 
 section .data
+  logo  db  LINE_FEED
+        db  "      /\_____/\     ", LINE_FEED
+        db  "     /  o   o  \    ", LINE_FEED
+        db  "    ( ==  ^  == )   ", LINE_FEED
+        db  "     )         (    ", LINE_FEED
+        db  "    (   MIAOU   )   ", LINE_FEED
+        db  "   (             )  ", LINE_FEED
+        db  "  (  (  )   (  )  ) ", LINE_FEED
+        db  " (___(__)___(__)___)", LINE_FEED, NULL_CHAR
+
   USER_STRUCT_LEN equ _user_struct_end - _user_struct
   
   ; user offsets

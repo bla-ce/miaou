@@ -21,6 +21,14 @@ _start:
 
   mov   qword [server_fd], rax
 
+  ; print logo
+  mov   rdi, logo
+  call  println
+
+  mov   qword [miaou_errno], MIAOU_ERROR_PRINT
+  cmp   rax, 0
+  jl    .error
+
   mov   rdi, log_starting_server
   call  println
 
