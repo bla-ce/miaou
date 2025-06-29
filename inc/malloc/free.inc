@@ -3,6 +3,9 @@ section .text
 ; @param  rdi: chunk
 ; @return rax: bool
 can_coalesce:
+  cmp   qword [rdi+CHUNK_OFFSET_INUSE], 0
+  je    .heap_bound
+
   mov   rsi, qword [rdi+CHUNK_OFFSET_SIZE]
   add   rdi, rsi
 
@@ -78,7 +81,7 @@ remove_from_free_list:
   
   ; get bin of data size
   mov   rdi, qword [rdi+CHUNK_OFFSET_SIZE]
-  sub   rdi, CHUNK_SIZE
+  sub   rdi, CHUNK_METADATA_LEN
   call  get_bin
 
   mov   rdi, qword [seg_free_list+0x8*rax]
@@ -159,7 +162,7 @@ add_to_free_list:
 
   ; get bin of data size
   mov   rdi, qword [rdi+CHUNK_OFFSET_SIZE]
-  sub   rdi, CHUNK_SIZE
+  sub   rdi, CHUNK_METADATA_LEN
   call  get_bin
   
   ; save bin index
@@ -207,7 +210,11 @@ free:
   jl    .error
   
   ; go to the beginning of the struct
-  sub   rdi, CHUNK_SIZE
+  call  get_chunk_header
+  cmp   rax, 0
+  jl    .error
+
+  mov   rdi, rax
 
   mov   rbx, qword [rdi+CHUNK_OFFSET_MAGIC]
   cmp   rbx, MAGIC_VAL_HEAP_CORRUPT

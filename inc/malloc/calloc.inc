@@ -29,19 +29,26 @@ calloc:
 
   ; rax points to the data
   ; go to the beginning of the header
-  sub   rax, CHUNK_SIZE
+  mov   rdi, rax
+  call  get_chunk_header
+  cmp   rax, 0
+  jl    .error
+
   mov   rcx, qword [rax+CHUNK_OFFSET_SIZE]
-  sub   rcx, CHUNK_SIZE
+  sub   rcx, CHUNK_METADATA_LEN
 
   ; go back to data and set bytes to 0
-  add   rax, CHUNK_SIZE
-  mov   rdi, rax
+  mov   rdi, [rsp]
   mov   rsi, 0
   mov   rdx, rcx
   call  memset
 
   mov   rax, [rsp]
 
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
   jmp   .return
 
 .null:

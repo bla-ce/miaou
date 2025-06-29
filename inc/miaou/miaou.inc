@@ -106,6 +106,12 @@ section .data
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $-close_msg - 1
 
+  ban_msg     db "!ban", LINE_FEED, NULL_CHAR
+  ban_msg_len equ $-ban_msg - 1
+
+  shutdown_msg     db "!shutdown", LINE_FEED, NULL_CHAR
+  shutdown_msg_len equ $-shutdown_msg - 1
+
 section .text;
 ; sends the string in rdi to all file descriptors set
 ; @param  rdi: pointer to the message

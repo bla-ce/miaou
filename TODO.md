@@ -13,8 +13,11 @@
 - [x] Update message format
 - [x] There is an error happening, causing boeuf to fail
 - [x] Add back the colors
-- [ ] username validation
 - [ ] Add admin command
+    - [ ] !shutdown
+    - [ ] !ban
+
+- [ ] username validation
 - [ ] Reduce scope of globals
 - [ ] Get more functions
 - [ ] Add message time
