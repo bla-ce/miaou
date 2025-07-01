@@ -251,17 +251,62 @@ _start:
   jmp   .inner_loop
 
 .read_and_send_message:
+  ; check if user is admin
+  mov   rax, qword [curr_fd]
+  cmp   rax, STDIN_FILENO
+  jne   .check_restrictions
+
+  mov   rdi, buf
+  mov   rsi, shutdown_msg
+  mov   rdx, shutdown_msg_len
+  call  strncmp
+  je    .close_server
+
+  mov   rdi, buf
+  mov   rsi, ban_msg
+  call  starts_with
+  cmp   rax, TRUE
+  jne   .message_allowed
+
+  ; remove new line at the end of the buffer
+  mov   rdi, buf
+  add   rdi, qword [rsp]
+  dec   rdi
+  mov   rax, NULL_CHAR
+  stosb
+
+  ; get username
+  mov   rdi, buf
+  add   rdi, ban_msg_len
+  inc   rdi
+
+  ; get user by username
+  call  get_user_by_username
+  cmp   rax, 0
+  je    .user_does_not_exist
+  jl    .error
+
+  ; ban user
+  mov   rdi, rax
+  call  ban_user
+  cmp   rax, 0
+  jl    .error
+
+  jmp   .inner_loop
+
+.user_does_not_exist:
+  mov   rdi, ban_no_user
+  call  println
+
+  jmp   .inner_loop
+
+.check_restrictions:
   ; check if user is closing the connection
   mov   rdi, buf
   mov   rsi, close_msg
   mov   rdx, close_msg_len
   call  strncmp
   je    .clear_fd
-
-  ; remove restrictions for admin
-  mov   rax, qword [curr_fd]
-  cmp   rax, STDIN_FILENO
-  je    .message_allowed
 
   ; check rate limiter
   call  now 
@@ -283,16 +328,13 @@ _start:
   jl    .no_ban   
 
   ; TODO: ban user
-
-  jmp   .clear_fd
+  mov   rdi, [rsp+0x10]
+  call  ban_user
 
 .no_ban:
   jmp   .inner_loop
 
 .message_allowed:
-  ; reset strikes count
-  mov   rdi, [rsp+0x10]
-
   ; create boeuf buffer to display message
   ; get color
   mov   rdi, [rsp+0x10]
@@ -460,6 +502,9 @@ _start:
   jmp   .loop
 
 .end_loop:
+
+.close_server:
+  ; TODO: free resources and close fd
 
   mov   rdi, SUCCESS_CODE
   call  exit

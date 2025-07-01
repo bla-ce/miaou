@@ -1,4 +1,5 @@
 %include "ascii.inc"
+%include "ban.inc"
 %include "boeuf.inc"
 %include "calloc.inc"
 %include "constants.inc"
@@ -73,7 +74,7 @@ section .data
   server_fd dq 0
   user_fd   dq 0
 
-  admin_username      db "admin", LINE_FEED, NULL_CHAR
+  admin_username      db "admin", NULL_CHAR
   admin_username_len  equ $-admin_username - 1
   USERNAME_MIN_LENGTH equ 3
   
@@ -99,6 +100,9 @@ section .data
 
   log_new_connection  db " joined the chat", LINE_FEED, NULL_CHAR
   log_close           db " left the chat", LINE_FEED, NULL_CHAR
+  log_ban             db " has been banned from the chat", LINE_FEED, NULL_CHAR
+  
+  ban_no_user db "The user you are trying to ban is not in this chat", NULL_CHAR
 
   msg_uname_too_short db "The username you provided is too short", LINE_FEED
                       db "Please enter new username (min 3 char)", NULL_CHAR
@@ -106,7 +110,7 @@ section .data
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $-close_msg - 1
 
-  ban_msg     db "!ban", LINE_FEED, NULL_CHAR
+  ban_msg     db "!ban", NULL_CHAR
   ban_msg_len equ $-ban_msg - 1
 
   shutdown_msg     db "!shutdown", LINE_FEED, NULL_CHAR
@@ -238,6 +242,72 @@ remove_user_from_array:
   mov   rax, FAILURE_CODE
 
 .return:
+  ret
+
+; returns the user struct with the username provided or return 0 if does not
+; exist
+; @param  rdi: pointer to the username
+; @return rax: pointer to the user struct or null
+get_user_by_username:
+  sub   rsp, 0x18
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the username
+  ; [rsp+0x8]   -> index
+  ; [rsp+0x10]  -> dynamic pointer to the user array
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], 0
+  mov   qword [rsp+0x10], users
+
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
+  cmp   rdi, 0
+  jl    .error
+
+.loop:
+  mov   rsi, [rsp+0x10]
+  mov   rdi, [rsi]
+
+  cmp   rdi, 0
+  je    .null_struct
+
+  ; get username
+  mov   rsi, [rdi+USER_STRUCT_OFFSET_USERNAME]
+  mov   rdi, [rsp]
+  call  strcmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .loop_end
+
+.null_struct:
+  ; move to next struct
+  mov   rdi, [rsp+0x10]
+  add   rdi, 8
+  mov   [rsp+0x10], rdi
+
+  inc   qword [rsp+0x8]
+  mov   rax, qword [rsp+0x8]
+  cmp   rax, qword [active_connections]
+  jg    .does_not_exist
+
+  jmp   .loop
+
+.loop_end:
+  mov   rdi, [rsp+0x10]
+  mov   rax, [rdi]
+  jmp   .return
+
+.does_not_exist:
+  mov   rax, 0
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x18
   ret
 
 ; returns the user struct with the file descriptor or return 0 if does not

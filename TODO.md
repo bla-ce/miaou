@@ -14,8 +14,8 @@
 - [x] There is an error happening, causing boeuf to fail
 - [x] Add back the colors
 - [ ] Add admin command
-    - [ ] !shutdown
-    - [ ] !ban
+    - [x] !shutdown
+    - [x] !ban
 
 - [ ] username validation
 - [ ] Reduce scope of globals
