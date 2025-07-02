@@ -182,13 +182,17 @@ _start:
   jg    .read_and_send_message
 
   ; make sure length of the username is greater than 6
-  mov   rax, qword [rsp]
-  cmp   rax, USERNAME_MIN_LENGTH
-  jg    .set_username
+  mov   rdi, buf
+  call  validate_username
+  cmp   rax, 0
+  jl    .clear_fd
 
+  cmp   rax, TRUE
+  je    .set_username
+  
   ; send message requiring long enough username
   mov   rdi, qword [curr_fd]
-  mov   rsi, msg_uname_too_short
+  mov   rsi, msg_invalid_uname
   call  write_socket
   cmp   rax, 0
   jl    .error

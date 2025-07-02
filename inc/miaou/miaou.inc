@@ -77,6 +77,7 @@ section .data
   admin_username      db "admin", NULL_CHAR
   admin_username_len  equ $-admin_username - 1
   USERNAME_MIN_LENGTH equ 3
+  USERNAME_MAX_LENGTH equ 32
   
   curr_fd     dq 0
   MAX_CONNECT equ 10
@@ -104,8 +105,8 @@ section .data
   
   ban_no_user db "The user you are trying to ban is not in this chat", NULL_CHAR
 
-  msg_uname_too_short db "The username you provided is too short", LINE_FEED
-                      db "Please enter new username (min 3 char)", NULL_CHAR
+  msg_invalid_uname db "The username you provided is invalid", LINE_FEED
+                    db "Please enter new username: 3 to 32 charachters without space", NULL_CHAR
 
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $-close_msg - 1
@@ -117,6 +118,66 @@ section .data
   shutdown_msg_len equ $-shutdown_msg - 1
 
 section .text;
+
+; takes a pointer to the username of the user and checks if it's valid
+; @param  rdi: pointer to the username
+; @return rax: username is valid
+validate_username:
+  sub   rsp, 0x8
+
+  ; *** STACK USAGE *** ;
+  ; [rsp]     -> pointer to the username
+
+  mov   [rsp], rdi
+
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
+  cmp   rdi, 0
+  jle   .error
+
+  ; get length of the username
+  call  strlen
+
+  mov   qword [miaou_errno], MIAOU_ERROR_STRLEN
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, USERNAME_MIN_LENGTH
+  jl    .invalid
+
+  cmp   rax, USERNAME_MAX_LENGTH
+  jg    .invalid
+
+  ; make sure there is no space (only invalid character for now)
+  mov   rdi, [rsp]
+
+.loop:
+  mov   al, byte [rdi]
+  movsx rax, al
+  cmp   rax, SPACE
+  je    .invalid
+
+  cmp   rax, NULL_CHAR
+  je    .loop_end
+
+  inc   rdi
+  jmp   .loop
+.loop_end:
+
+  mov   rax, TRUE
+
+  jmp   .return
+
+.invalid:
+  mov   rax, FALSE
+  jmp   .return
+
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x8
+  ret
+  
 ; sends the string in rdi to all file descriptors set
 ; @param  rdi: pointer to the message
 ; @param  rsi: server file descriptor

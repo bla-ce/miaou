@@ -16,12 +16,12 @@
 - [ ] Add admin command
     - [x] !shutdown
     - [x] !ban
-
-- [ ] username validation
+- [x] username validation
+- [ ] make sure username does not already exist
 - [ ] Reduce scope of globals
 - [ ] Get more functions
 - [ ] Add message time
-- [ ] Ban users after 10 strikes
+- [ ] Store banned users somewhere
 - [ ] Create groups
 - [ ] Add password and accounts
 - [ ] Give different role to the chat
