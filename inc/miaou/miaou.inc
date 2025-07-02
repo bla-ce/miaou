@@ -105,8 +105,10 @@ section .data
   
   ban_no_user db "The user you are trying to ban is not in this chat", NULL_CHAR
 
-  msg_invalid_uname db "The username you provided is invalid", LINE_FEED
+  msg_invalid_uname db "The username you provided is invalid or is already in the chat", LINE_FEED
                     db "Please enter new username: 3 to 32 charachters without space", NULL_CHAR
+
+  msg_invalid_uname_len equ $-msg_invalid_uname - 1
 
   close_msg     db "!close", LINE_FEED, NULL_CHAR
   close_msg_len equ $-close_msg - 1
@@ -118,6 +120,84 @@ section .data
   shutdown_msg_len equ $-shutdown_msg - 1
 
 section .text;
+; checks if a user is already in the chat
+; @param  rdi: pointer to the username
+; @return rax: user is in the chat
+is_user_in_chat:
+  sub   rsp, 0x20
+  
+  ; *** STACK USAGE *** ;
+  ; [rsp]       -> pointer to the username
+  ; [rsp+0x8]   -> pointer to the users array
+  ; [rsp+0x10]  -> index
+  ; [rsp+0x18]  -> length of the username
+
+  mov   [rsp], rdi
+  mov   qword [rsp+0x8], users
+  mov   qword [rsp+0x10], 0
+
+  mov   qword [miaou_errno], MIAOU_ERROR_INVALID_ARG
+  cmp   rdi, 0
+  jle   .error
+
+  mov   rdi, [rsp]
+  call  strlen
+
+  mov   qword [miaou_errno], MIAOU_ERROR_STRLEN
+  cmp   rax, 0
+  jl    .error
+
+  dec   rax ; remove the line feed
+  mov   qword [rsp+0x18], rax
+
+.loop:
+  mov   rsi, [rsp+0x8]
+  mov   rdi, [rsi]
+
+  cmp   rdi, 0
+  je    .null_struct
+
+  ; get username
+  mov   rsi, [rdi+USER_STRUCT_OFFSET_USERNAME]
+  cmp   rsi, 0
+  je    .null_struct
+
+  mov   rdi, [rsp]
+  mov   rdx, qword [rsp+0x18]
+  call  strncmp
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .in_chat
+
+.null_struct:
+  ; move to next struct
+  mov   rdi, [rsp+0x8]
+  add   rdi, 8
+  mov   [rsp+0x8], rdi
+
+  inc   qword [rsp+0x10]
+  mov   rax, qword [rsp+0x10]
+  cmp   rax, qword [active_connections]
+  jg    .loop_end
+
+  jmp   .loop
+
+.loop_end:
+  mov   rax, FALSE
+  jmp   .return
+
+.in_chat:
+  mov   rax, TRUE
+  jmp   .return
+  
+.error:
+  mov   rax, FAILURE_CODE
+
+.return:
+  add   rsp, 0x20
+  ret
 
 ; takes a pointer to the username of the user and checks if it's valid
 ; @param  rdi: pointer to the username
@@ -162,6 +242,15 @@ validate_username:
   inc   rdi
   jmp   .loop
 .loop_end:
+
+  ;  make sure the user is not already in the chat
+  mov   rdi, [rsp]
+  call  is_user_in_chat
+  cmp   rax, 0
+  jl    .error
+
+  cmp   rax, TRUE
+  je    .invalid
 
   mov   rax, TRUE
 

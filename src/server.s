@@ -185,14 +185,15 @@ _start:
   mov   rdi, buf
   call  validate_username
   cmp   rax, 0
-  jl    .clear_fd
+  jl    .error    ; TODO: error?
 
   cmp   rax, TRUE
   je    .set_username
   
-  ; send message requiring long enough username
+  ; send message invalid username
   mov   rdi, qword [curr_fd]
   mov   rsi, msg_invalid_uname
+  mov   rdx, msg_invalid_uname_len
   call  write_socket
   cmp   rax, 0
   jl    .error
