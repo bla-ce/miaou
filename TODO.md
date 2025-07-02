@@ -18,7 +18,7 @@
     - [x] !ban
 - [x] username validation
 - [x] make sure username does not already exist
-- [ ] when entering new username and closing client, server stop
+- [x] when entering new username and closing client, server stop
 - [ ] Reduce scope of globals
 - [ ] Get more functions
 - [ ] Add message time

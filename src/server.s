@@ -170,7 +170,7 @@ _start:
   mov   rdx, BUFSIZ
   call  read_socket
   cmp   rax, 0
-  je    .clear_fd
+  je    .disconnect_user
   jl    .error
 
   mov   qword [rsp], rax
@@ -311,7 +311,7 @@ _start:
   mov   rsi, close_msg
   mov   rdx, close_msg_len
   call  strncmp
-  je    .clear_fd
+  je    .disconnect_user
 
   ; check rate limiter
   call  now 
@@ -420,7 +420,7 @@ _start:
 
   jmp   .inner_loop
   
-.clear_fd:
+.disconnect_user:
   ; shutdown the server if admin leaves
   cmp   qword [curr_fd], 0
   je    .end_loop
@@ -431,6 +431,9 @@ _start:
 
   mov   rsi, [rsp+0x10]
   mov   rdi, qword [rsi+USER_STRUCT_OFFSET_USERNAME]
+  cmp   rdi, 0
+  jle   .clear_fd
+
   call  boeuf_create
 
   mov   qword [miaou_errno], MIAOU_ERROR_BOEUF
@@ -463,13 +466,6 @@ _start:
   cmp   rax, 0
   jl    .error
 
-  ; clear fd
-  mov   rdi, qword [curr_fd]
-  mov   rsi, qword [main_fds]
-  call  FD_CLR
-  cmp   rax, 0
-  jl    .error
-
   ; free boeuf buffer
   mov   rdi, [rsp+0x18]
   call  boeuf_free
@@ -498,6 +494,14 @@ _start:
   call  free
 
   mov   qword [miaou_errno], MIAOU_ERROR_FREE
+  cmp   rax, 0
+  jl    .error
+
+.clear_fd:
+  ; clear fd
+  mov   rdi, qword [curr_fd]
+  mov   rsi, qword [main_fds]
+  call  FD_CLR
   cmp   rax, 0
   jl    .error
 
